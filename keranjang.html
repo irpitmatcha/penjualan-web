@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keranjang - Toko Baju Putroe Shop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="running-text" aria-label="Informasi promo">
+        <div class="running-text-track">
+            <p>Drop terbaru tiap pekan | Style cewek modern, classy, dan nyaman | Checkout gampang, respon admin cepat | Follow Instagram @putroe.shop dan TikTok @putroshop buat promo spesial</p>
+            <p aria-hidden="true">Drop terbaru tiap pekan | Style cewek modern, classy, dan nyaman | Checkout gampang, respon admin cepat | Follow Instagram @putroe.shop dan TikTok @putroshop buat promo spesial</p>
+        </div>
+    </div>
+    <header class="site-header">
+        <a class="brand" href="beranda.html">Toko Baju Putroe Shop</a>
+        <nav class="nav-links" aria-label="Navigasi utama">
+            <a href="beranda.html">Beranda</a>
+            <a href="produk.html">Produk</a>
+            <a href="tentang.html">Tentang</a>
+            <a href="kontak.html">Kontak</a>
+            <a class="active" href="keranjang.html">Keranjang <span class="cart-count">0</span></a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="page-hero">
+            <p class="eyebrow">Belanja Anda</p>
+            <h1>Keranjang</h1>
+            <p>Periksa kembali produk yang sudah dipilih sebelum melanjutkan pemesanan.</p>
+        </section>
+
+        <section class="section">
+            <div class="checkout-progress" aria-label="Langkah checkout">
+                <div class="active"><span>1</span><p>Cek Keranjang</p></div>
+                <div><span>2</span><p>Konfirmasi Admin</p></div>
+                <div><span>3</span><p>Bayar Pesanan</p></div>
+            </div>
+
+            <div class="cart-layout">
+                <div class="cart-panel">
+                    <div class="cart-panel-header">
+                        <div>
+                            <p class="eyebrow">Daftar belanja</p>
+                            <h2>Produk Dipilih</h2>
+                        </div>
+                        <a href="produk.html">Tambah Produk</a>
+                    </div>
+                    <div id="cart-items" class="cart-items"></div>
+                    <p id="empty-cart" class="empty-cart">Keranjang masih kosong. Silakan pilih produk terlebih dahulu.</p>
+                </div>
+
+                <aside class="summary-card">
+                    <h2>Ringkasan</h2>
+                    <div class="summary-mini-row">
+                        <span>Subtotal produk</span>
+                        <strong id="cart-subtotal">Rp0</strong>
+                    </div>
+                    <div class="summary-mini-row">
+                        <span>Ongkir</span>
+                        <strong>Konfirmasi</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total</span>
+                        <strong id="cart-total">Rp0</strong>
+                    </div>
+                    <p class="checkout-note">Total belum termasuk ongkir. Admin akan mengonfirmasi stok, alamat, dan metode pembayaran seperti transfer bank, e-wallet, atau COD jika tersedia.</p>
+                    <a class="button primary full-width" href="kontak.html">Lanjut Hubungi Toko</a>
+                    <button id="clear-cart" class="button secondary full-width" type="button">Kosongkan Keranjang</button>
+                </aside>
+            </div>
+        </section>
+
+        <section class="section compact-section">
+            <div class="cart-help-grid">
+                <article>
+                    <span>Transfer</span>
+                    <h3>Pembayaran Mudah</h3>
+                    <p>Admin akan mengirim detail rekening atau e-wallet setelah pesanan dikonfirmasi.</p>
+                </article>
+                <article>
+                    <span>Ongkir</span>
+                    <h3>Cek Alamat</h3>
+                    <p>Biaya pengiriman dihitung berdasarkan alamat dan jasa kirim yang dipilih.</p>
+                </article>
+                <article>
+                    <span>Stok</span>
+                    <h3>Konfirmasi Produk</h3>
+                    <p>Ukuran, warna, dan jumlah barang dicek ulang sebelum pembayaran.</p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; Toko Baju Putroe Shop 2026 - Website Penjualan Online UMKM</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
