@@ -198,5 +198,11 @@ document.querySelectorAll('.contact-form').forEach((form) => {
     });
 });
 
+// Prevent stale cached local images when the file is replaced with a new photo.
+document.querySelectorAll('img[src^="gambar"]').forEach((image) => {
+    const separator = image.src.includes('?') ? '&' : '?';
+    image.src = `${image.src}${separator}v=${Date.now()}`;
+});
+
 updateCartCount();
 renderCart();
