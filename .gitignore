@@ -1,5 +1,9 @@
 node_modules/
+.env
 database/sessions.json
+database/store.db
+database/store.db-shm
+database/store.db-wal
 Screenshots/
 desktop.ini
 npm-debug.log*

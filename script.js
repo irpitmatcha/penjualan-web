@@ -45,8 +45,8 @@ const demoAdminAccount = {
     id: 1,
     name: 'Admin Putroe Shop',
     email: 'admin@putroeshop.com',
-    username: 'putroeadmin',
-    password: 'putroe2026',
+    username: '',
+    password: '',
     isAdmin: true
 };
 
@@ -241,73 +241,24 @@ const clearDemoSession = () => {
     localStorage.removeItem(demoStorageKeys.session);
 };
 
-const findDemoUserByCredentials = (identifier, password) => {
-    const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
-    const normalizedPassword = String(password || '');
-    const candidates = [demoAdminAccount, ...getDemoUsers()];
-
-    return candidates.find((user) => {
-        const email = String(user.email || '').toLowerCase();
-        const username = String(user.username || email.split('@')[0] || '').toLowerCase();
-        return (normalizedIdentifier === email || normalizedIdentifier === username)
-            && normalizedPassword === String(user.password || '');
-    }) || null;
-};
-
 const handleLocalDemoRequest = (url, options = {}) => {
     const method = String(options.method || 'GET').toUpperCase();
     const payload = options.body || {};
     const session = getDemoSession();
 
     if (url === '/api/auth/me' && method === 'GET') {
-        return session
-            ? { ok: true, authenticated: true, user: session }
-            : { ok: true, authenticated: false, user: null };
+        return { ok: true, authenticated: false, user: null };
     }
 
     if (url === '/api/auth/login' && method === 'POST') {
-        const user = findDemoUserByCredentials(payload.email, payload.password);
-        if (!user) {
-            return {
-                ok: false,
-                message: 'Login gagal. Gunakan putroeadmin / putroe2026 atau akun yang sudah didaftarkan.'
-            };
-        }
-
-        setDemoSession(user);
         return {
-            ok: true,
-            message: 'Login berhasil. Mode demo lokal aktif.',
-            user: sanitizeSessionUser(user)
+            ok: false,
+            message: 'Login admin hanya bisa dipakai saat backend server aktif.'
         };
     }
 
     if (url === '/api/auth/register' && method === 'POST') {
-        const email = String(payload.email || '').trim().toLowerCase();
-        const name = String(payload.name || '').trim();
-        const password = String(payload.password || '');
-
-        if (!name || !email || !password) {
-            return { ok: false, message: 'Nama, email, dan password wajib diisi.' };
-        }
-
-        const existingUser = [demoAdminAccount, ...getDemoUsers()].find((user) => String(user.email || '').toLowerCase() === email);
-        if (existingUser) {
-            return { ok: false, message: 'Email sudah terdaftar.' };
-        }
-
-        const users = getDemoUsers();
-        const newUser = {
-            id: Date.now(),
-            name,
-            email,
-            password,
-            isAdmin: false
-        };
-
-        users.push(newUser);
-        saveDemoUsers(users);
-        return { ok: true, message: 'Registrasi berhasil. Silakan login.' };
+        return { ok: false, message: 'Registrasi hanya tersedia saat backend server aktif.' };
     }
 
     if (url === '/api/auth/logout' && method === 'POST') {

@@ -1,12 +1,56 @@
 const express = require('express');
 const crypto = require('crypto');
-const fs = require('fs/promises');
+const fs = require('fs');
 const path = require('path');
+const { DatabaseSync } = require('node:sqlite');
+
+const ROOT_DIR = __dirname;
+const ENV_FILE = path.join(ROOT_DIR, '.env');
+
+const loadEnvFile = (filePath) => {
+    if (!fs.existsSync(filePath)) {
+        return;
+    }
+
+    const raw = fs.readFileSync(filePath, 'utf8');
+    raw.split(/\r?\n/).forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) {
+            return;
+        }
+
+        const separatorIndex = trimmed.indexOf('=');
+        if (separatorIndex <= 0) {
+            return;
+        }
+
+        const key = trimmed.slice(0, separatorIndex).trim();
+        const value = trimmed.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, '');
+        if (!process.env[key]) {
+            process.env[key] = value;
+        }
+    });
+};
+
+loadEnvFile(ENV_FILE);
+
+const requireEnv = (key) => {
+    const value = String(process.env[key] || '').trim();
+    if (!value) {
+        throw new Error(`Environment variable ${key} wajib diisi. Lihat file .env.example.`);
+    }
+    return value;
+};
+
+const createPasswordHash = (password, salt = crypto.randomBytes(16).toString('hex')) => ({
+    salt,
+    hash: crypto.scryptSync(String(password), salt, 64).toString('hex')
+});
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
-const ROOT_DIR = __dirname;
 const DATABASE_DIR = path.join(ROOT_DIR, 'database');
+const SQLITE_FILE = path.join(DATABASE_DIR, 'store.db');
 const USERS_FILE = path.join(DATABASE_DIR, 'users.json');
 const ORDERS_FILE = path.join(DATABASE_DIR, 'orders.json');
 const PRODUCTS_FILE = path.join(DATABASE_DIR, 'products.json');
@@ -15,26 +59,16 @@ const CUSTOMERS_FILE = path.join(DATABASE_DIR, 'customers.json');
 const SETTINGS_FILE = path.join(DATABASE_DIR, 'settings.json');
 const SESSIONS_FILE = path.join(DATABASE_DIR, 'sessions.json');
 const SESSION_COOKIE_NAME = 'putroe_session';
+const SESSION_MAX_AGE_SECONDS = Math.max(Number(process.env.SESSION_MAX_AGE_SECONDS) || (60 * 60 * 24 * 7), 300);
+const COOKIE_SECURE = String(process.env.COOKIE_SECURE || '').toLowerCase() === 'true';
+const ALLOW_PUBLIC_REGISTRATION = String(process.env.ALLOW_PUBLIC_REGISTRATION || '').toLowerCase() === 'true';
+const LOGIN_RATE_LIMIT_MAX = Math.max(Number(process.env.LOGIN_RATE_LIMIT_MAX) || 5, 1);
+const LOGIN_RATE_LIMIT_WINDOW_MS = Math.max(Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 900000, 60000);
+const ADMIN_NAME = process.env.ADMIN_NAME || 'Admin Putroe Shop';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@putroeshop.com';
+const ADMIN_USERNAME = requireEnv('ADMIN_USERNAME');
+const ADMIN_PASSWORD = requireEnv('ADMIN_PASSWORD');
 
-const createPasswordHash = (password, salt = crypto.randomBytes(16).toString('hex')) => ({
-    salt,
-    hash: crypto.scryptSync(String(password), salt, 64).toString('hex')
-});
-
-const defaultUsers = [
-    {
-        id: 1,
-        name: 'Admin Putroe Shop',
-        email: 'admin@putroeshop.com',
-        username: 'putroeadmin',
-        passwordHash: '9ef99cdf15952cd3e50e4e41136136278b253635308142510dfcaf81704896a4ca84b4e771f385e63f4f13a9de7149ce043d8e94dbfd1010e3e4571bbf66d772',
-        passwordSalt: 'putroe-shop-owner-salt',
-        isAdmin: true,
-        createdAt: '2026-07-09T00:00:00.000Z'
-    }
-];
-
-const defaultOrders = [];
 const defaultProducts = [
     { id: 201, name: 'Dress Aulia', category: 'Dress Muslimah', price: 185000, stock: 12, description: 'Dress harian dengan bahan adem dan jatuh.', photo: 'gambar1.jpg' },
     { id: 202, name: 'Blouse Meutia', category: 'Blouse Wanita', price: 135000, stock: 18, description: 'Blouse kerja simpel untuk aktivitas harian.', photo: 'gambar3.jpg' },
@@ -51,12 +85,11 @@ const defaultCustomers = [
 ];
 const defaultSettings = {
     storeName: 'Putroe Shop',
-    address: 'Jl Samalangan Kedai Samalanga',
+    address: 'Jl. SAMALANGA, KEDAI SAMALANGA',
     whatsapp: '081380134226',
-    email: 'admin@putroeshop.com',
+    email: ADMIN_EMAIL,
     logo: 'logo-putroe-shop.png'
 };
-const defaultSessions = [];
 
 const sanitizeUser = (user) => ({
     id: user.id,
@@ -82,55 +115,21 @@ const parseCookies = (cookieHeader = '') => cookieHeader
         return cookies;
     }, {});
 
-const ensureJsonFile = async (filePath, fallbackData) => {
+const readLegacyJson = (filePath, fallback) => {
     try {
-        await fs.access(filePath);
-    } catch (error) {
-        await fs.writeFile(filePath, `${JSON.stringify(fallbackData, null, 4)}\n`, 'utf8');
-    }
-};
+        if (!fs.existsSync(filePath)) {
+            return fallback;
+        }
 
-const readJsonFile = async (filePath, fallbackData) => {
-    try {
-        const raw = await fs.readFile(filePath, 'utf8');
+        const raw = fs.readFileSync(filePath, 'utf8');
         const parsed = JSON.parse(raw);
-        return Array.isArray(fallbackData)
-            ? (Array.isArray(parsed) ? parsed : fallbackData)
-            : (parsed && typeof parsed === 'object' ? parsed : fallbackData);
+        return Array.isArray(fallback)
+            ? (Array.isArray(parsed) ? parsed : fallback)
+            : (parsed && typeof parsed === 'object' ? parsed : fallback);
     } catch (error) {
-        return fallbackData;
+        return fallback;
     }
 };
-
-const writeJsonFile = async (filePath, data) => {
-    await fs.writeFile(filePath, `${JSON.stringify(data, null, 4)}\n`, 'utf8');
-};
-
-const initializeDatabase = async () => {
-    await fs.mkdir(DATABASE_DIR, { recursive: true });
-    await ensureJsonFile(USERS_FILE, defaultUsers);
-    await ensureJsonFile(ORDERS_FILE, defaultOrders);
-    await ensureJsonFile(PRODUCTS_FILE, defaultProducts);
-    await ensureJsonFile(CATEGORIES_FILE, defaultCategories);
-    await ensureJsonFile(CUSTOMERS_FILE, defaultCustomers);
-    await ensureJsonFile(SETTINGS_FILE, defaultSettings);
-    await ensureJsonFile(SESSIONS_FILE, defaultSessions);
-};
-
-const getUsers = () => readJsonFile(USERS_FILE, defaultUsers);
-const saveUsers = (users) => writeJsonFile(USERS_FILE, users);
-const getOrders = () => readJsonFile(ORDERS_FILE, defaultOrders);
-const saveOrders = (orders) => writeJsonFile(ORDERS_FILE, orders);
-const getProducts = () => readJsonFile(PRODUCTS_FILE, defaultProducts);
-const saveProducts = (products) => writeJsonFile(PRODUCTS_FILE, products);
-const getCategories = () => readJsonFile(CATEGORIES_FILE, defaultCategories);
-const saveCategories = (categories) => writeJsonFile(CATEGORIES_FILE, categories);
-const getCustomers = () => readJsonFile(CUSTOMERS_FILE, defaultCustomers);
-const saveCustomers = (customers) => writeJsonFile(CUSTOMERS_FILE, customers);
-const getSettings = () => readJsonFile(SETTINGS_FILE, defaultSettings);
-const saveSettings = (settings) => writeJsonFile(SETTINGS_FILE, settings);
-const getSessions = () => readJsonFile(SESSIONS_FILE, defaultSessions);
-const saveSessions = (sessions) => writeJsonFile(SESSIONS_FILE, sessions);
 
 const normalizeCustomerPayload = (customer = {}) => ({
     fullName: String(customer.fullName || '').trim(),
@@ -139,33 +138,455 @@ const normalizeCustomerPayload = (customer = {}) => ({
     email: String(customer.email || '').trim().toLowerCase()
 });
 
-const upsertCustomerRecord = (customers, customer) => {
+const loginAttempts = new Map();
+
+const getClientIp = (request) => {
+    const forwarded = String(request.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    return forwarded || request.socket.remoteAddress || 'unknown';
+};
+
+const pruneLoginAttempts = () => {
+    const cutoff = Date.now() - LOGIN_RATE_LIMIT_WINDOW_MS;
+    for (const [ip, timestamps] of loginAttempts.entries()) {
+        const valid = timestamps.filter((time) => time >= cutoff);
+        if (valid.length === 0) {
+            loginAttempts.delete(ip);
+            continue;
+        }
+        loginAttempts.set(ip, valid);
+    }
+};
+
+const getRateLimitState = (ip) => {
+    pruneLoginAttempts();
+    const attempts = loginAttempts.get(ip) || [];
+    if (attempts.length < LOGIN_RATE_LIMIT_MAX) {
+        return { limited: false, retryAfterSeconds: 0 };
+    }
+
+    const oldestAttempt = attempts[0];
+    const retryAfterSeconds = Math.max(Math.ceil((oldestAttempt + LOGIN_RATE_LIMIT_WINDOW_MS - Date.now()) / 1000), 1);
+    return { limited: true, retryAfterSeconds };
+};
+
+const recordFailedLogin = (ip) => {
+    pruneLoginAttempts();
+    const attempts = loginAttempts.get(ip) || [];
+    attempts.push(Date.now());
+    loginAttempts.set(ip, attempts);
+};
+
+const clearFailedLogins = (ip) => {
+    loginAttempts.delete(ip);
+};
+
+fs.mkdirSync(DATABASE_DIR, { recursive: true });
+const db = new DatabaseSync(SQLITE_FILE);
+
+const withTransaction = (callback) => {
+    db.exec('BEGIN');
+    try {
+        const result = callback();
+        db.exec('COMMIT');
+        return result;
+    } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+    }
+};
+
+const createSchema = () => {
+    db.exec(`
+        PRAGMA foreign_keys = ON;
+
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            password_salt TEXT NOT NULL,
+            is_admin INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            price INTEGER NOT NULL,
+            stock INTEGER NOT NULL,
+            description TEXT,
+            photo TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            note TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY,
+            full_name TEXT NOT NULL,
+            address TEXT,
+            phone TEXT,
+            email TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY,
+            order_code TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            user_name TEXT NOT NULL,
+            user_email TEXT NOT NULL,
+            customer_name TEXT NOT NULL,
+            phone TEXT,
+            address TEXT,
+            product_name TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            total_price INTEGER NOT NULL,
+            payment_method TEXT NOT NULL,
+            note TEXT,
+            status TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            store_name TEXT NOT NULL,
+            address TEXT NOT NULL,
+            whatsapp TEXT NOT NULL,
+            email TEXT NOT NULL,
+            logo TEXT NOT NULL
+        );
+    `);
+};
+
+const seedRowsIfEmpty = (tableName, countSql, insertCallback) => {
+    const current = db.prepare(countSql).get();
+    if (Number(current.total) === 0) {
+        insertCallback();
+    }
+};
+
+const migrateLegacyData = () => {
+    const legacyUsers = readLegacyJson(USERS_FILE, []);
+    const legacyProducts = readLegacyJson(PRODUCTS_FILE, defaultProducts);
+    const legacyCategories = readLegacyJson(CATEGORIES_FILE, defaultCategories);
+    const legacyCustomers = readLegacyJson(CUSTOMERS_FILE, defaultCustomers);
+    const legacyOrders = readLegacyJson(ORDERS_FILE, []);
+    const legacySettings = readLegacyJson(SETTINGS_FILE, defaultSettings);
+    const legacySessions = readLegacyJson(SESSIONS_FILE, []);
+
+    seedRowsIfEmpty('users', 'SELECT COUNT(*) AS total FROM users', () => {
+        const statement = db.prepare(`
+            INSERT INTO users (id, name, email, username, password_hash, password_salt, is_admin, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        legacyUsers.forEach((user) => {
+            if (!user || !user.passwordHash || !user.passwordSalt) {
+                return;
+            }
+            statement.run(
+                Number(user.id) || Date.now(),
+                String(user.name || 'User'),
+                String(user.email || '').trim().toLowerCase(),
+                String(user.username || String(user.email || '').split('@')[0] || `user${Date.now()}`).trim().toLowerCase(),
+                String(user.passwordHash),
+                String(user.passwordSalt),
+                user.isAdmin ? 1 : 0,
+                String(user.createdAt || new Date().toISOString())
+            );
+        });
+    });
+
+    seedRowsIfEmpty('products', 'SELECT COUNT(*) AS total FROM products', () => {
+        const statement = db.prepare('INSERT INTO products (id, name, category, price, stock, description, photo) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        legacyProducts.forEach((product) => {
+            statement.run(
+                Number(product.id) || Date.now(),
+                String(product.name || ''),
+                String(product.category || ''),
+                Number(product.price) || 0,
+                Number(product.stock) || 0,
+                String(product.description || ''),
+                String(product.photo || '')
+            );
+        });
+    });
+
+    seedRowsIfEmpty('categories', 'SELECT COUNT(*) AS total FROM categories', () => {
+        const statement = db.prepare('INSERT INTO categories (id, name, note) VALUES (?, ?, ?)');
+        legacyCategories.forEach((category) => {
+            statement.run(Number(category.id) || Date.now(), String(category.name || ''), String(category.note || ''));
+        });
+    });
+
+    seedRowsIfEmpty('customers', 'SELECT COUNT(*) AS total FROM customers', () => {
+        const statement = db.prepare('INSERT INTO customers (id, full_name, address, phone, email) VALUES (?, ?, ?, ?, ?)');
+        legacyCustomers.forEach((customer) => {
+            statement.run(
+                Number(customer.id) || Date.now(),
+                String(customer.fullName || ''),
+                String(customer.address || ''),
+                String(customer.phone || ''),
+                String(customer.email || '').trim().toLowerCase()
+            );
+        });
+    });
+
+    seedRowsIfEmpty('orders', 'SELECT COUNT(*) AS total FROM orders', () => {
+        const statement = db.prepare(`
+            INSERT INTO orders (
+                id, order_code, user_id, user_name, user_email, customer_name, phone, address,
+                product_name, quantity, total_price, payment_method, note, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        legacyOrders.forEach((order) => {
+            statement.run(
+                Number(order.id) || Date.now(),
+                String(order.order_code || `ORD-${Date.now()}`),
+                Number(order.user_id) || 0,
+                String(order.user_name || ''),
+                String(order.user_email || '').trim().toLowerCase(),
+                String(order.customer_name || ''),
+                String(order.phone || ''),
+                String(order.address || ''),
+                String(order.product_name || ''),
+                Math.max(Number(order.quantity) || 1, 1),
+                Number(order.total_price) || 0,
+                String(order.payment_method || 'Transfer Bank'),
+                String(order.note || ''),
+                String(order.status || 'menunggu_konfirmasi'),
+                String(order.created_at || new Date().toISOString())
+            );
+        });
+    });
+
+    seedRowsIfEmpty('settings', 'SELECT COUNT(*) AS total FROM settings', () => {
+        db.prepare(`
+            INSERT INTO settings (id, store_name, address, whatsapp, email, logo)
+            VALUES (1, ?, ?, ?, ?, ?)
+        `).run(
+            String(legacySettings.storeName || defaultSettings.storeName),
+            String(legacySettings.address || defaultSettings.address),
+            String(legacySettings.whatsapp || defaultSettings.whatsapp),
+            String(legacySettings.email || defaultSettings.email),
+            String(legacySettings.logo || defaultSettings.logo)
+        );
+    });
+
+    seedRowsIfEmpty('sessions', 'SELECT COUNT(*) AS total FROM sessions', () => {
+        const statement = db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)');
+        legacySessions.forEach((session) => {
+            if (!session || !session.token || !session.userId) {
+                return;
+            }
+            statement.run(
+                String(session.token),
+                Number(session.userId),
+                String(session.createdAt || new Date().toISOString()),
+                String(session.expiresAt || new Date(Date.now() + (SESSION_MAX_AGE_SECONDS * 1000)).toISOString())
+            );
+        });
+    });
+};
+
+const ensureAdminUser = () => {
+    const credentials = createPasswordHash(ADMIN_PASSWORD);
+    const existingAdmin = db.prepare(`
+        SELECT id FROM users
+        WHERE id = 1 OR lower(email) = lower(?) OR lower(username) = lower(?)
+        ORDER BY CASE WHEN id = 1 THEN 0 ELSE 1 END
+        LIMIT 1
+    `).get(ADMIN_EMAIL, ADMIN_USERNAME);
+
+    if (existingAdmin) {
+        db.prepare(`
+            UPDATE users
+            SET name = ?, email = ?, username = ?, password_hash = ?, password_salt = ?, is_admin = 1
+            WHERE id = ?
+        `).run(
+            ADMIN_NAME,
+            ADMIN_EMAIL,
+            ADMIN_USERNAME,
+            credentials.hash,
+            credentials.salt,
+            Number(existingAdmin.id)
+        );
+        return;
+    }
+
+    db.prepare(`
+        INSERT INTO users (id, name, email, username, password_hash, password_salt, is_admin, created_at)
+        VALUES (1, ?, ?, ?, ?, ?, 1, ?)
+    `).run(
+        ADMIN_NAME,
+        ADMIN_EMAIL,
+        ADMIN_USERNAME,
+        credentials.hash,
+        credentials.salt,
+        new Date().toISOString()
+    );
+};
+
+const purgeExpiredSessions = () => {
+    db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(new Date().toISOString());
+};
+
+const initializeDatabase = () => {
+    createSchema();
+    withTransaction(() => {
+        migrateLegacyData();
+        ensureAdminUser();
+        purgeExpiredSessions();
+    });
+};
+
+const mapUserRow = (row) => row ? {
+    id: Number(row.id),
+    name: row.name,
+    email: row.email,
+    username: row.username,
+    passwordHash: row.password_hash,
+    passwordSalt: row.password_salt,
+    isAdmin: Boolean(row.is_admin),
+    createdAt: row.created_at
+} : null;
+
+const getSettings = () => {
+    const row = db.prepare('SELECT store_name, address, whatsapp, email, logo FROM settings WHERE id = 1').get();
+    return row ? {
+        storeName: row.store_name,
+        address: row.address,
+        whatsapp: row.whatsapp,
+        email: row.email,
+        logo: row.logo
+    } : { ...defaultSettings };
+};
+
+const getProducts = () => db.prepare(`
+    SELECT id, name, category, price, stock, description, photo
+    FROM products ORDER BY id DESC
+`).all();
+
+const getCategories = () => db.prepare(`
+    SELECT id, name, note FROM categories ORDER BY id DESC
+`).all();
+
+const getCustomers = () => db.prepare(`
+    SELECT id, full_name AS fullName, address, phone, email FROM customers ORDER BY id DESC
+`).all();
+
+const getOrders = () => db.prepare(`
+    SELECT id, order_code, user_id, user_name, user_email, customer_name, phone, address,
+           product_name, quantity, total_price, payment_method, note, status, created_at
+    FROM orders ORDER BY datetime(created_at) DESC, id DESC
+`).all();
+
+const replaceProducts = (products) => {
+    withTransaction(() => {
+        db.prepare('DELETE FROM products').run();
+        const statement = db.prepare('INSERT INTO products (id, name, category, price, stock, description, photo) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        products.forEach((product) => {
+            statement.run(
+                Number(product.id) || Date.now(),
+                String(product.name || '').trim(),
+                String(product.category || '').trim(),
+                Number(product.price) || 0,
+                Number(product.stock) || 0,
+                String(product.description || '').trim(),
+                String(product.photo || '').trim()
+            );
+        });
+    });
+};
+
+const replaceCategories = (categories) => {
+    withTransaction(() => {
+        db.prepare('DELETE FROM categories').run();
+        const statement = db.prepare('INSERT INTO categories (id, name, note) VALUES (?, ?, ?)');
+        categories.forEach((category) => {
+            statement.run(Number(category.id) || Date.now(), String(category.name || '').trim(), String(category.note || '').trim());
+        });
+    });
+};
+
+const replaceCustomers = (customers) => {
+    withTransaction(() => {
+        db.prepare('DELETE FROM customers').run();
+        const statement = db.prepare('INSERT INTO customers (id, full_name, address, phone, email) VALUES (?, ?, ?, ?, ?)');
+        customers.forEach((customer) => {
+            statement.run(
+                Number(customer.id) || Date.now(),
+                String(customer.fullName || '').trim(),
+                String(customer.address || '').trim(),
+                String(customer.phone || '').trim(),
+                String(customer.email || '').trim().toLowerCase()
+            );
+        });
+    });
+};
+
+const saveSettings = (settings) => {
+    const nextSettings = { ...defaultSettings, ...settings };
+    db.prepare(`
+        UPDATE settings
+        SET store_name = ?, address = ?, whatsapp = ?, email = ?, logo = ?
+        WHERE id = 1
+    `).run(
+        String(nextSettings.storeName || defaultSettings.storeName).trim(),
+        String(nextSettings.address || defaultSettings.address).trim(),
+        String(nextSettings.whatsapp || defaultSettings.whatsapp).trim(),
+        String(nextSettings.email || defaultSettings.email).trim(),
+        String(nextSettings.logo || defaultSettings.logo).trim()
+    );
+};
+
+const upsertCustomerRecord = (customer) => {
     const normalized = normalizeCustomerPayload(customer);
     if (!normalized.fullName) {
-        return customers;
+        return;
     }
 
-    const existingCustomer = customers.find((item) => {
-        const sameEmail = normalized.email
-            && String(item.email || '').trim().toLowerCase() === normalized.email
-            && String(item.fullName || '').trim().toLowerCase() === normalized.fullName.toLowerCase();
-        const samePhone = normalized.phone && String(item.phone || '').trim() === normalized.phone;
-        return sameEmail || samePhone;
-    });
+    const existingCustomer = db.prepare(`
+        SELECT id, address, phone, email FROM customers
+        WHERE (lower(email) = lower(?) AND lower(full_name) = lower(?))
+           OR phone = ?
+        LIMIT 1
+    `).get(normalized.email, normalized.fullName, normalized.phone);
 
     if (existingCustomer) {
-        existingCustomer.fullName = normalized.fullName;
-        existingCustomer.address = normalized.address || existingCustomer.address || '';
-        existingCustomer.phone = normalized.phone || existingCustomer.phone || '';
-        existingCustomer.email = normalized.email || existingCustomer.email || '';
-        return customers;
+        db.prepare(`
+            UPDATE customers
+            SET full_name = ?, address = ?, phone = ?, email = ?
+            WHERE id = ?
+        `).run(
+            normalized.fullName,
+            normalized.address || existingCustomer.address || '',
+            normalized.phone || existingCustomer.phone || '',
+            normalized.email || existingCustomer.email || '',
+            Number(existingCustomer.id)
+        );
+        return;
     }
 
-    customers.unshift({
-        id: Date.now(),
-        ...normalized
-    });
-    return customers;
+    db.prepare('INSERT INTO customers (id, full_name, address, phone, email) VALUES (?, ?, ?, ?, ?)').run(
+        Date.now(),
+        normalized.fullName,
+        normalized.address,
+        normalized.phone,
+        normalized.email
+    );
 };
 
 const setSessionCookie = (response, token) => {
@@ -174,13 +595,20 @@ const setSessionCookie = (response, token) => {
         'HttpOnly',
         'Path=/',
         'SameSite=Lax',
-        `Max-Age=${60 * 60 * 24 * 7}`
+        `Max-Age=${SESSION_MAX_AGE_SECONDS}`
     ];
+    if (COOKIE_SECURE) {
+        cookieParts.push('Secure');
+    }
     response.setHeader('Set-Cookie', cookieParts.join('; '));
 };
 
 const clearSessionCookie = (response) => {
-    response.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
+    const cookieParts = [`${SESSION_COOKIE_NAME}=`, 'HttpOnly', 'Path=/', 'SameSite=Lax', 'Max-Age=0'];
+    if (COOKIE_SECURE) {
+        cookieParts.push('Secure');
+    }
+    response.setHeader('Set-Cookie', cookieParts.join('; '));
 };
 
 const verifyPassword = (password, user) => {
@@ -194,39 +622,46 @@ const verifyPassword = (password, user) => {
     return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 };
 
-const findUserByIdentifier = (users, identifier) => {
+const findUserByIdentifier = (identifier) => {
     const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
-    return users.find((user) => {
-        const email = String(user.email || '').trim().toLowerCase();
-        const username = String(user.username || email.split('@')[0] || '').trim().toLowerCase();
-        return normalizedIdentifier === email || normalizedIdentifier === username;
-    }) || null;
+    const row = db.prepare(`
+        SELECT id, name, email, username, password_hash, password_salt, is_admin, created_at
+        FROM users
+        WHERE lower(email) = ? OR lower(username) = ?
+        LIMIT 1
+    `).get(normalizedIdentifier, normalizedIdentifier);
+    return mapUserRow(row);
 };
 
-const getAuthenticatedUser = async (request) => {
+const findUserByEmail = (email) => {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const row = db.prepare(`
+        SELECT id, name, email, username, password_hash, password_salt, is_admin, created_at
+        FROM users WHERE lower(email) = ? LIMIT 1
+    `).get(normalizedEmail);
+    return mapUserRow(row);
+};
+
+const getAuthenticatedUser = (request) => {
+    purgeExpiredSessions();
     const cookies = parseCookies(request.headers.cookie || '');
     const token = cookies[SESSION_COOKIE_NAME];
     if (!token) {
         return null;
     }
 
-    const sessions = await getSessions();
-    const activeSession = sessions.find((session) => session.token === token);
-    if (!activeSession) {
-        return null;
-    }
-
-    if (new Date(activeSession.expiresAt).getTime() <= Date.now()) {
-        await saveSessions(sessions.filter((session) => session.token !== token));
-        return null;
-    }
-
-    const users = await getUsers();
-    return users.find((user) => Number(user.id) === Number(activeSession.userId)) || null;
+    const session = db.prepare(`
+        SELECT s.user_id, u.id, u.name, u.email, u.username, u.password_hash, u.password_salt, u.is_admin, u.created_at
+        FROM sessions s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.token = ?
+        LIMIT 1
+    `).get(token);
+    return mapUserRow(session);
 };
 
-const requireAuth = async (request, response, next) => {
-    const user = await getAuthenticatedUser(request);
+const requireAuth = (request, response, next) => {
+    const user = getAuthenticatedUser(request);
     if (!user) {
         response.status(401).json({ message: 'Silakan login terlebih dahulu.' });
         return;
@@ -236,8 +671,8 @@ const requireAuth = async (request, response, next) => {
     next();
 };
 
-const requireAdmin = async (request, response, next) => {
-    const user = await getAuthenticatedUser(request);
+const requireAdmin = (request, response, next) => {
+    const user = getAuthenticatedUser(request);
     if (!user) {
         response.status(401).json({ message: 'Silakan login terlebih dahulu.' });
         return;
@@ -252,75 +687,93 @@ const requireAdmin = async (request, response, next) => {
     next();
 };
 
-app.use(express.json());
+app.disable('x-powered-by');
+app.use((request, response, next) => {
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('X-Frame-Options', 'DENY');
+    response.setHeader('Referrer-Policy', 'no-referrer');
+    response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    response.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me");
+    next();
+});
+app.use(express.json({ limit: '64kb' }));
 
-app.get('/api/health', (request, response) => {
-    response.json({ ok: true, message: 'Backend Putroe Shop aktif.' });
+app.use((error, request, response, next) => {
+    if (error instanceof SyntaxError && 'body' in error) {
+        response.status(400).json({ message: 'Format JSON tidak valid.' });
+        return;
+    }
+    next(error);
 });
 
-app.get('/api/store/bootstrap', async (request, response) => {
-    const user = await getAuthenticatedUser(request);
-    const isAdmin = Boolean(user && user.isAdmin);
-    const [products, categories, settings, customers, orders] = await Promise.all([
-        getProducts(),
-        getCategories(),
-        getSettings(),
-        isAdmin ? getCustomers() : Promise.resolve([]),
-        isAdmin ? getOrders() : Promise.resolve([])
-    ]);
+app.get('/api/health', (request, response) => {
+    response.json({ ok: true, message: 'Backend Putroe Shop aktif.', storage: 'sqlite' });
+});
 
+app.get('/api/store/bootstrap', (request, response) => {
+    const user = getAuthenticatedUser(request);
+    const isAdmin = Boolean(user && user.isAdmin);
     response.json({
-        products,
-        categories,
-        customers,
-        orders,
-        settings
+        products: getProducts(),
+        categories: getCategories(),
+        customers: isAdmin ? getCustomers() : [],
+        orders: isAdmin ? getOrders() : [],
+        settings: getSettings()
     });
 });
 
-app.get('/api/auth/me', async (request, response) => {
-    const user = await getAuthenticatedUser(request);
+app.get('/api/auth/me', (request, response) => {
+    const user = getAuthenticatedUser(request);
     response.json({
         authenticated: Boolean(user),
         user: user ? sanitizeUser(user) : null
     });
 });
 
-app.post('/api/auth/login', async (request, response) => {
+app.post('/api/auth/login', (request, response) => {
     const identifier = String(request.body.email || request.body.username || '').trim();
     const password = String(request.body.password || '');
+    const ip = getClientIp(request);
+    const rateLimit = getRateLimitState(ip);
+
+    if (rateLimit.limited) {
+        response.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
+        response.status(429).json({ message: 'Terlalu banyak percobaan login. Coba lagi beberapa menit lagi.' });
+        return;
+    }
 
     if (!identifier || !password) {
         response.status(400).json({ message: 'Username atau email serta password wajib diisi.' });
         return;
     }
 
-    const users = await getUsers();
-    const user = findUserByIdentifier(users, identifier);
+    const user = findUserByIdentifier(identifier);
     if (!verifyPassword(password, user)) {
+        recordFailedLogin(ip);
         response.status(401).json({ message: 'Login gagal. Periksa username atau password.' });
         return;
     }
 
-    const sessions = await getSessions();
+    clearFailedLogins(ip);
     const token = crypto.randomUUID();
-    const nextSessions = sessions.filter((session) => Number(session.userId) !== Number(user.id));
-    nextSessions.push({
-        token,
-        userId: user.id,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString()
-    });
-    await saveSessions(nextSessions);
-    setSessionCookie(response, token);
+    const createdAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + (SESSION_MAX_AGE_SECONDS * 1000)).toISOString();
 
-    response.json({
-        message: 'Login berhasil.',
-        user: sanitizeUser(user)
+    withTransaction(() => {
+        db.prepare('DELETE FROM sessions WHERE user_id = ?').run(Number(user.id));
+        db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').run(token, Number(user.id), createdAt, expiresAt);
     });
+
+    setSessionCookie(response, token);
+    response.json({ message: 'Login berhasil.', user: sanitizeUser(user) });
 });
 
-app.post('/api/auth/register', async (request, response) => {
+app.post('/api/auth/register', (request, response) => {
+    if (!ALLOW_PUBLIC_REGISTRATION) {
+        response.status(403).json({ message: 'Registrasi publik dinonaktifkan pada server ini.' });
+        return;
+    }
+
     const name = String(request.body.name || '').trim();
     const email = String(request.body.email || '').trim().toLowerCase();
     const password = String(request.body.password || '');
@@ -330,44 +783,40 @@ app.post('/api/auth/register', async (request, response) => {
         return;
     }
 
-    const users = await getUsers();
-    const existingUser = users.find((user) => String(user.email || '').trim().toLowerCase() === email);
-    if (existingUser) {
+    if (findUserByEmail(email)) {
         response.status(409).json({ message: 'Email sudah terdaftar.' });
         return;
     }
 
     const credentials = createPasswordHash(password);
     const usernameBase = email.split('@')[0] || `user${Date.now()}`;
-    const newUser = {
-        id: Date.now(),
+    db.prepare(`
+        INSERT INTO users (id, name, email, username, password_hash, password_salt, is_admin, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+    `).run(
+        Date.now(),
         name,
         email,
-        username: usernameBase,
-        passwordHash: credentials.hash,
-        passwordSalt: credentials.salt,
-        isAdmin: false,
-        createdAt: new Date().toISOString()
-    };
+        usernameBase,
+        credentials.hash,
+        credentials.salt,
+        new Date().toISOString()
+    );
 
-    users.push(newUser);
-    await saveUsers(users);
     response.status(201).json({ message: 'Registrasi berhasil. Silakan login.' });
 });
 
-app.post('/api/auth/logout', async (request, response) => {
+app.post('/api/auth/logout', (request, response) => {
     const cookies = parseCookies(request.headers.cookie || '');
     const token = cookies[SESSION_COOKIE_NAME];
     if (token) {
-        const sessions = await getSessions();
-        await saveSessions(sessions.filter((session) => session.token !== token));
+        db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
     }
-
     clearSessionCookie(response);
     response.json({ message: 'Anda berhasil logout.' });
 });
 
-app.post('/api/orders', requireAuth, async (request, response) => {
+app.post('/api/orders', requireAuth, (request, response) => {
     const quantity = Math.max(Number(request.body.jumlah) || 1, 1);
     const totalPrice = Number(request.body.totalHarga) || Number(request.body.total_price) || 0;
     const orderId = Date.now();
@@ -389,38 +838,61 @@ app.post('/api/orders', requireAuth, async (request, response) => {
         created_at: new Date().toISOString()
     };
 
-    const [orders, customers] = await Promise.all([getOrders(), getCustomers()]);
-    orders.unshift(newOrder);
-    upsertCustomerRecord(customers, {
-        fullName: newOrder.customer_name,
-        address: newOrder.address,
-        phone: newOrder.phone,
-        email: newOrder.user_email
+    withTransaction(() => {
+        db.prepare(`
+            INSERT INTO orders (
+                id, order_code, user_id, user_name, user_email, customer_name, phone, address,
+                product_name, quantity, total_price, payment_method, note, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            newOrder.id,
+            newOrder.order_code,
+            Number(newOrder.user_id),
+            newOrder.user_name,
+            newOrder.user_email,
+            newOrder.customer_name,
+            newOrder.phone,
+            newOrder.address,
+            newOrder.product_name,
+            newOrder.quantity,
+            newOrder.total_price,
+            newOrder.payment_method,
+            newOrder.note,
+            newOrder.status,
+            newOrder.created_at
+        );
+        upsertCustomerRecord({
+            fullName: newOrder.customer_name,
+            address: newOrder.address,
+            phone: newOrder.phone,
+            email: newOrder.user_email
+        });
     });
-    await Promise.all([
-        saveOrders(orders),
-        saveCustomers(customers)
-    ]);
+
     response.status(201).json({ message: 'Pesanan berhasil disimpan.', order: newOrder });
 });
 
-app.get('/api/orders/my', requireAuth, async (request, response) => {
-    const orders = await getOrders();
-    response.json({
-        orders: orders.filter((order) => Number(order.user_id) === Number(request.user.id))
-    });
+app.get('/api/orders/my', requireAuth, (request, response) => {
+    const statement = db.prepare(`
+        SELECT id, order_code, user_id, user_name, user_email, customer_name, phone, address,
+               product_name, quantity, total_price, payment_method, note, status, created_at
+        FROM orders WHERE user_id = ? ORDER BY datetime(created_at) DESC, id DESC
+    `);
+    response.json({ orders: statement.all(Number(request.user.id)) });
 });
 
-app.get('/api/admin/orders', requireAdmin, async (request, response) => {
-    const orders = await getOrders();
-    response.json({ orders });
+app.get('/api/admin/orders', requireAdmin, (request, response) => {
+    response.json({ orders: getOrders() });
 });
 
-app.patch('/api/admin/orders/:id/status', requireAdmin, async (request, response) => {
+app.patch('/api/admin/orders/:id/status', requireAdmin, (request, response) => {
     const orderId = Number(request.params.id);
     const nextStatus = String(request.body.status || '').trim();
-    const orders = await getOrders();
-    const targetOrder = orders.find((order) => Number(order.id) === orderId);
+    const targetOrder = db.prepare(`
+        SELECT id, order_code, user_id, user_name, user_email, customer_name, phone, address,
+               product_name, quantity, total_price, payment_method, note, status, created_at
+        FROM orders WHERE id = ? LIMIT 1
+    `).get(orderId);
 
     if (!targetOrder) {
         response.status(404).json({ message: 'Pesanan tidak ditemukan.' });
@@ -432,37 +904,39 @@ app.patch('/api/admin/orders/:id/status', requireAdmin, async (request, response
         return;
     }
 
-    targetOrder.status = nextStatus;
-    await saveOrders(orders);
-    response.json({ message: 'Status pesanan berhasil diperbarui.', order: targetOrder });
+    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(nextStatus, orderId);
+    response.json({ message: 'Status pesanan berhasil diperbarui.', order: { ...targetOrder, status: nextStatus } });
 });
 
-app.post('/api/admin/store/sync', requireAdmin, async (request, response) => {
-    const tasks = [];
+app.post('/api/admin/store/sync', requireAdmin, (request, response) => {
+    let changed = false;
 
     if (Array.isArray(request.body.products)) {
-        tasks.push(saveProducts(request.body.products));
+        replaceProducts(request.body.products);
+        changed = true;
     }
 
     if (Array.isArray(request.body.categories)) {
-        tasks.push(saveCategories(request.body.categories));
+        replaceCategories(request.body.categories);
+        changed = true;
     }
 
     if (Array.isArray(request.body.customers)) {
-        tasks.push(saveCustomers(request.body.customers));
+        replaceCustomers(request.body.customers);
+        changed = true;
     }
 
     if (request.body.settings && typeof request.body.settings === 'object' && !Array.isArray(request.body.settings)) {
-        tasks.push(saveSettings({ ...defaultSettings, ...request.body.settings }));
+        saveSettings(request.body.settings);
+        changed = true;
     }
 
-    if (tasks.length === 0) {
+    if (!changed) {
         response.status(400).json({ message: 'Tidak ada data admin yang dikirim untuk disimpan.' });
         return;
     }
 
-    await Promise.all(tasks);
-    response.json({ message: 'Data dashboard admin berhasil disimpan ke file.' });
+    response.json({ message: 'Data dashboard admin berhasil disimpan ke SQLite.' });
 });
 
 app.use(express.static(ROOT_DIR));
@@ -471,13 +945,7 @@ app.get('/', (request, response) => {
     response.sendFile(path.join(ROOT_DIR, 'index.html'));
 });
 
-initializeDatabase()
-    .then(() => {
-        app.listen(PORT, () => {
-            console.log(`Putroe Shop berjalan di http://localhost:${PORT}`);
-        });
-    })
-    .catch((error) => {
-        console.error('Gagal menyiapkan database file-based.', error);
-        process.exit(1);
-    });
+initializeDatabase();
+app.listen(PORT, () => {
+    console.log(`Putroe Shop berjalan di http://localhost:${PORT}`);
+});

@@ -2,7 +2,7 @@
     "name": "putroe-shop",
     "version": "1.0.0",
     "private": true,
-    "description": "Website penjualan Putroe Shop dengan backend file-based untuk login dan pesanan.",
+    "description": "Website penjualan Putroe Shop dengan backend SQLite untuk login, pesanan, dan dashboard admin.",
     "main": "server.js",
     "scripts": {
         "start": "node server.js"
