@@ -42,6 +42,7 @@ window.PUTROE_CONFIG = {
 
 Upload file frontend berikut ke folder `htdocs` atau `public_html` akun InfinityFree Anda:
 
+- `.htaccess`
 - `index.html`
 - `produk.html`
 - `kontak.html`
@@ -79,3 +80,4 @@ Urutan tes yang disarankan:
 - Jika login gagal dari domain InfinityFree, cek `CORS_ORIGIN` di backend.
 - Jika browser memblokir permintaan, cek apakah backend memakai HTTPS.
 - Jika data tidak tersimpan, pastikan backend Node.js benar-benar aktif dan bisa diakses publik.
+- Jika halaman indeks folder terlihat di browser, pastikan file `.htaccess` ikut ter-upload.
