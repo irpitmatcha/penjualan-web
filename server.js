@@ -61,9 +61,11 @@ const SESSIONS_FILE = path.join(DATABASE_DIR, 'sessions.json');
 const SESSION_COOKIE_NAME = 'putroe_session';
 const SESSION_MAX_AGE_SECONDS = Math.max(Number(process.env.SESSION_MAX_AGE_SECONDS) || (60 * 60 * 24 * 7), 300);
 const COOKIE_SECURE = String(process.env.COOKIE_SECURE || '').toLowerCase() === 'true';
+const COOKIE_SAME_SITE = String(process.env.COOKIE_SAME_SITE || 'Lax').trim() || 'Lax';
 const ALLOW_PUBLIC_REGISTRATION = String(process.env.ALLOW_PUBLIC_REGISTRATION || '').toLowerCase() === 'true';
 const LOGIN_RATE_LIMIT_MAX = Math.max(Number(process.env.LOGIN_RATE_LIMIT_MAX) || 5, 1);
 const LOGIN_RATE_LIMIT_WINDOW_MS = Math.max(Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 900000, 60000);
+const CORS_ORIGIN = String(process.env.CORS_ORIGIN || '').trim();
 const ADMIN_NAME = process.env.ADMIN_NAME || 'Admin Putroe Shop';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@putroeshop.com';
 const ADMIN_USERNAME = requireEnv('ADMIN_USERNAME');
@@ -88,7 +90,7 @@ const defaultSettings = {
     address: 'Jl. SAMALANGA, KEDAI SAMALANGA',
     whatsapp: '081380134226',
     email: ADMIN_EMAIL,
-    logo: 'logo-putroe-shop.png'
+    logo: 'gambar1.jpg'
 };
 
 const sanitizeUser = (user) => ({
@@ -114,6 +116,15 @@ const parseCookies = (cookieHeader = '') => cookieHeader
         cookies[key] = decodeURIComponent(value);
         return cookies;
     }, {});
+
+const getAuthorizationToken = (request) => {
+    const header = String(request.headers.authorization || '').trim();
+    if (!header.toLowerCase().startsWith('bearer ')) {
+        return '';
+    }
+
+    return header.slice(7).trim();
+};
 
 const readLegacyJson = (filePath, fallback) => {
     try {
@@ -594,7 +605,7 @@ const setSessionCookie = (response, token) => {
         `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}`,
         'HttpOnly',
         'Path=/',
-        'SameSite=Lax',
+        `SameSite=${COOKIE_SAME_SITE}`,
         `Max-Age=${SESSION_MAX_AGE_SECONDS}`
     ];
     if (COOKIE_SECURE) {
@@ -604,11 +615,21 @@ const setSessionCookie = (response, token) => {
 };
 
 const clearSessionCookie = (response) => {
-    const cookieParts = [`${SESSION_COOKIE_NAME}=`, 'HttpOnly', 'Path=/', 'SameSite=Lax', 'Max-Age=0'];
+    const cookieParts = [`${SESSION_COOKIE_NAME}=`, 'HttpOnly', 'Path=/', `SameSite=${COOKIE_SAME_SITE}`, 'Max-Age=0'];
     if (COOKIE_SECURE) {
         cookieParts.push('Secure');
     }
     response.setHeader('Set-Cookie', cookieParts.join('; '));
+};
+
+const getSessionToken = (request) => {
+    const bearerToken = getAuthorizationToken(request);
+    if (bearerToken) {
+        return bearerToken;
+    }
+
+    const cookies = parseCookies(request.headers.cookie || '');
+    return cookies[SESSION_COOKIE_NAME] || '';
 };
 
 const verifyPassword = (password, user) => {
@@ -644,8 +665,7 @@ const findUserByEmail = (email) => {
 
 const getAuthenticatedUser = (request) => {
     purgeExpiredSessions();
-    const cookies = parseCookies(request.headers.cookie || '');
-    const token = cookies[SESSION_COOKIE_NAME];
+    const token = getSessionToken(request);
     if (!token) {
         return null;
     }
@@ -689,11 +709,26 @@ const requireAdmin = (request, response, next) => {
 
 app.disable('x-powered-by');
 app.use((request, response, next) => {
+    const requestOrigin = String(request.headers.origin || '').trim();
+    if (CORS_ORIGIN && requestOrigin && requestOrigin === CORS_ORIGIN) {
+        response.setHeader('Access-Control-Allow-Origin', requestOrigin);
+        response.setHeader('Vary', 'Origin');
+        response.setHeader('Access-Control-Allow-Credentials', 'true');
+        response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+    }
+
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('X-Frame-Options', 'DENY');
     response.setHeader('Referrer-Policy', 'no-referrer');
     response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     response.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me");
+
+    if (request.method === 'OPTIONS') {
+        response.status(204).end();
+        return;
+    }
+
     next();
 });
 app.use(express.json({ limit: '64kb' }));
@@ -765,7 +800,7 @@ app.post('/api/auth/login', (request, response) => {
     });
 
     setSessionCookie(response, token);
-    response.json({ message: 'Login berhasil.', user: sanitizeUser(user) });
+    response.json({ message: 'Login berhasil.', user: sanitizeUser(user), token, tokenType: 'Bearer' });
 });
 
 app.post('/api/auth/register', (request, response) => {
@@ -807,8 +842,7 @@ app.post('/api/auth/register', (request, response) => {
 });
 
 app.post('/api/auth/logout', (request, response) => {
-    const cookies = parseCookies(request.headers.cookie || '');
-    const token = cookies[SESSION_COOKIE_NAME];
+    const token = getSessionToken(request);
     if (token) {
         db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
     }

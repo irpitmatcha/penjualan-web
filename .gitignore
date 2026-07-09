@@ -1,5 +1,7 @@
 node_modules/
 .env
+infinityfree-upload/
+infinityfree-upload.zip
 database/sessions.json
 database/store.db
 database/store.db-shm

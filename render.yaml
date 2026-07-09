@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: putroe-shop-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: ALLOW_PUBLIC_REGISTRATION
+        value: false
+      - key: COOKIE_SECURE
+        value: true
+      - key: COOKIE_SAME_SITE
+        value: None
+      - key: LOGIN_RATE_LIMIT_MAX
+        value: 5
+      - key: LOGIN_RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: SESSION_MAX_AGE_SECONDS
+        value: 604800
+      - key: CORS_ORIGIN
+        sync: false
+      - key: ADMIN_NAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

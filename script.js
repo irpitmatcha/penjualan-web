@@ -7,6 +7,48 @@ const formatRupiah = (value) => new Intl.NumberFormat('id-ID', {
 let activeSession = null;
 let allowRemoteAdminSync = false;
 
+const runtimeConfig = window.PUTROE_CONFIG && typeof window.PUTROE_CONFIG === 'object'
+    ? window.PUTROE_CONFIG
+    : {};
+const configuredApiBase = String(runtimeConfig.apiBase || '').trim().replace(/\/+$/, '');
+const hasExternalApiBase = Boolean(configuredApiBase);
+const authTokenStorageKey = 'putroeAuthToken';
+
+const buildApiUrl = (path) => {
+    if (!hasExternalApiBase) {
+        return path;
+    }
+
+    return `${configuredApiBase}${path}`;
+};
+
+const shouldUseLocalDemoApi = () => window.location.protocol === 'file:' && !hasExternalApiBase;
+
+const getStoredAuthToken = () => {
+    try {
+        return String(localStorage.getItem(authTokenStorageKey) || '').trim();
+    } catch (error) {
+        return '';
+    }
+};
+
+const setStoredAuthToken = (token) => {
+    try {
+        if (!token) {
+            localStorage.removeItem(authTokenStorageKey);
+            return;
+        }
+
+        localStorage.setItem(authTokenStorageKey, String(token));
+    } catch (error) {
+        // Abaikan kegagalan storage agar aplikasi tetap berjalan.
+    }
+};
+
+const clearStoredAuthToken = () => {
+    setStoredAuthToken('');
+};
+
 const getCurrentPage = () => {
     const current = window.location.pathname.split('/').pop();
     return current || 'index.html';
@@ -64,15 +106,18 @@ const saveStoredJson = (key, value) => {
 };
 
 const pushAdminCollectionToServer = (collectionName, value) => {
-    if (!allowRemoteAdminSync || window.location.protocol === 'file:') {
+    if (!allowRemoteAdminSync || shouldUseLocalDemoApi()) {
         return;
     }
 
-    fetch('/api/admin/store/sync', {
+    const token = getStoredAuthToken();
+
+    fetch(buildApiUrl('/api/admin/store/sync'), {
         method: 'POST',
         credentials: 'include',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ [collectionName]: value })
     }).catch(() => {
@@ -140,7 +185,7 @@ const getDefaultDemoSettings = () => ({
     address: 'Jl Samalangan Kedai Samalanga',
     whatsapp: '081380134226',
     email: 'admin@putroeshop.com',
-    logo: 'logo-putroe-shop.png'
+    logo: 'gambar1.jpg'
 });
 
 const getDemoSettings = () => {
@@ -389,16 +434,19 @@ const setupAccountMenu = () => {
 };
 
 const requestAuthApi = async (url, options = {}) => {
-    if (window.location.protocol === 'file:') {
+    if (shouldUseLocalDemoApi()) {
         return handleLocalDemoRequest(url, options);
     }
 
+    const token = getStoredAuthToken();
+
     try {
-        const response = await fetch(url, {
+        const response = await fetch(buildApiUrl(url), {
             method: options.method || 'GET',
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 ...(options.headers || {})
             },
             body: options.body ? JSON.stringify(options.body) : undefined
@@ -479,7 +527,7 @@ const applyRemoteStoreBootstrap = (payload) => {
 };
 
 const initializeRemoteStore = async () => {
-    if (window.location.protocol === 'file:') {
+    if (shouldUseLocalDemoApi()) {
         return;
     }
 
@@ -604,6 +652,7 @@ const setupAuthForms = () => {
                 return;
             }
 
+            setStoredAuthToken(result.token || '');
             activeSession = result.user || null;
             loginForm.reset();
             updateAuthNavigation();
@@ -624,6 +673,7 @@ const setupAuthForms = () => {
                 return;
             }
 
+            clearStoredAuthToken();
             activeSession = null;
             closeAllAccountMenus();
             updateAuthNavigation();
@@ -674,6 +724,7 @@ const setupAuthForms = () => {
                 return;
             }
 
+            clearStoredAuthToken();
             activeSession = null;
             closeAllAccountMenus();
             updateAuthNavigation();
