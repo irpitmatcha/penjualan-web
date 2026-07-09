@@ -4,6 +4,9 @@
     "private": true,
     "description": "Website penjualan Putroe Shop dengan backend SQLite untuk login, pesanan, dan dashboard admin.",
     "main": "server.js",
+    "engines": {
+        "node": ">=22.5.0"
+    },
     "scripts": {
         "start": "node server.js"
     },
