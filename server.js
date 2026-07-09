@@ -15,23 +15,20 @@ const CUSTOMERS_FILE = path.join(DATABASE_DIR, 'customers.json');
 const SETTINGS_FILE = path.join(DATABASE_DIR, 'settings.json');
 const SESSIONS_FILE = path.join(DATABASE_DIR, 'sessions.json');
 const SESSION_COOKIE_NAME = 'putroe_session';
-const DEFAULT_ADMIN_PASSWORD = 'admin12345';
 
 const createPasswordHash = (password, salt = crypto.randomBytes(16).toString('hex')) => ({
     salt,
     hash: crypto.scryptSync(String(password), salt, 64).toString('hex')
 });
 
-const defaultAdminCredentials = createPasswordHash(DEFAULT_ADMIN_PASSWORD, 'putroe-shop-admin-salt');
-
 const defaultUsers = [
     {
         id: 1,
         name: 'Admin Putroe Shop',
         email: 'admin@putroeshop.com',
-        username: 'admin',
-        passwordHash: '3e6f44beb399f4140dd4f434b3da1a33c012112d27928731076db9f80055244cb448d2c14d113cc2b9ff1c92349042f42d00e04c218485eadf861021744cf980',
-        passwordSalt: defaultAdminCredentials.salt,
+        username: 'putroeadmin',
+        passwordHash: '9ef99cdf15952cd3e50e4e41136136278b253635308142510dfcaf81704896a4ca84b4e771f385e63f4f13a9de7149ce043d8e94dbfd1010e3e4571bbf66d772',
+        passwordSalt: 'putroe-shop-owner-salt',
         isAdmin: true,
         createdAt: '2026-07-09T00:00:00.000Z'
     }
@@ -54,8 +51,8 @@ const defaultCustomers = [
 ];
 const defaultSettings = {
     storeName: 'Putroe Shop',
-    address: 'Jl. UMKM Putroe Shop, Banda Aceh',
-    whatsapp: '0812-3456-7890',
+    address: 'Jl Samalangan Kedai Samalanga',
+    whatsapp: '081380134226',
     email: 'admin@putroeshop.com',
     logo: 'logo-putroe-shop.png'
 };

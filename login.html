@@ -9,8 +9,8 @@
 <body>
     <div class="running-text" aria-label="Informasi akses dashboard">
         <div class="running-text-track">
-            <p>Login diperlukan sebelum mengakses dashboard Putroe Shop | Kelola produk, pesanan, pelanggan, penjualan, dan laporan omzet dari satu tempat | Demo lokal: username admin dan password admin12345</p>
-            <p aria-hidden="true">Login diperlukan sebelum mengakses dashboard Putroe Shop | Kelola produk, pesanan, pelanggan, penjualan, dan laporan omzet dari satu tempat | Demo lokal: username admin dan password admin12345</p>
+            <p>Login diperlukan sebelum mengakses dashboard Putroe Shop | Kelola produk, pesanan, pelanggan, penjualan, dan laporan omzet dari satu tempat</p>
+            <p aria-hidden="true">Login diperlukan sebelum mengakses dashboard Putroe Shop | Kelola produk, pesanan, pelanggan, penjualan, dan laporan omzet dari satu tempat</p>
         </div>
     </div>
 
@@ -29,35 +29,20 @@
     <main>
         <section class="page-hero login-hero">
             <p class="eyebrow">Halaman Login Admin</p>
-            <h1>PUTROE SHOP</h1>
-            <p>Website Penjualan Online UMKM</p>
-            <p>Silakan masuk menggunakan akun administrator untuk mengelola data produk, pesanan, pelanggan, dan laporan penjualan.</p>
+            <h1>Masuk Dashboard Admin</h1>
+            <p>Login administrator dipakai untuk mengelola produk, pelanggan, pesanan, dan laporan penjualan Putroe Shop.</p>
         </section>
 
         <section class="section login-section">
-            <div class="login-layout">
-                <article class="login-panel">
-                    <p class="eyebrow">PUTROE SHOP</p>
-                    <h2>Website Penjualan Online</h2>
-                    <p>Dashboard administrator membantu pengelolaan data produk, kategori, pelanggan, pesanan, laporan penjualan, dan pengaturan toko dari satu halaman.</p>
-                    <ul class="login-benefits">
-                        <li>Username</li>
-                        <li>Password</li>
-                        <li>Tombol login</li>
-                        <li>Setelah login berhasil masuk ke Dashboard Admin</li>
-                    </ul>
-                    <p class="login-helper">Demo lokal tersedia dengan username <strong>admin</strong> dan password <strong>admin12345</strong>.</p>
-                </article>
-
+            <div class="contact-layout">
                 <form id="login-form" class="login-form">
-                    <p class="eyebrow">LOGIN ADMIN</p>
-                    <h2>PUTROE SHOP</h2>
-                    <p class="login-helper">Website Penjualan Online</p>
+                    <h2>Form Login Admin</h2>
+
                     <label for="username">Username</label>
-                    <input id="username" name="username" type="text" placeholder="Masukkan username" autocomplete="username" required>
+                    <input id="username" name="username" type="text" placeholder="Masukkan username admin" autocomplete="username" required>
 
                     <label for="password">Password</label>
-                    <input id="password" name="password" type="password" placeholder="Masukkan password" autocomplete="current-password" required>
+                    <input id="password" name="password" type="password" placeholder="Masukkan password admin" autocomplete="current-password" required>
 
                     <div class="login-form-row">
                         <label class="remember-me" for="remember">
@@ -67,20 +52,30 @@
                         <a class="forgot-link" href="kontak.html">Butuh bantuan?</a>
                     </div>
 
-                    <button class="button primary full-width" type="submit">LOGIN ADMIN</button>
-                    <p class="login-helper">Setelah login berhasil, sistem akan membawa Anda ke Dashboard Admin Putroe Shop.</p>
+                    <button class="button primary" type="submit">Login Admin</button>
+                    <p class="login-helper">Setelah login berhasil, Anda akan masuk ke dashboard admin Putroe Shop.</p>
                 </form>
 
-                <section id="auth-card" class="login-form auth-card" hidden>
-                    <p class="eyebrow">Status Login</p>
-                    <h2>Akun Sudah Aktif</h2>
+                <section id="auth-card" class="contact-card auth-card" hidden>
+                    <h2>Status Login</h2>
                     <p id="auth-greeting"></p>
-                    <div class="hero-actions">
-                        <a id="auth-dashboard-link" class="button primary" href="admin.html#overview">Buka Dashboard</a>
-                        <a id="auth-catalog-link" class="button secondary" href="admin.html#products">Buka Katalog Admin</a>
-                    </div>
+                    <p>Akun administrator sudah aktif. Anda bisa langsung masuk ke dashboard pengelolaan toko.</p>
+                    <a id="auth-dashboard-link" class="button primary full-width" href="admin.html#overview">Buka Dashboard</a>
+                    <a id="auth-catalog-link" class="button secondary full-width" href="admin.html#products">Buka Katalog Admin</a>
                     <button id="logout-account" class="button secondary full-width" type="button">Logout</button>
                 </section>
+
+                <aside class="contact-card" id="login-info-card">
+                    <h2>Informasi Admin</h2>
+                    <p>WhatsApp: <a href="https://wa.me/6281380134226" target="_blank" rel="noopener">081380134226</a></p>
+                    <p>Alamat: Jl. SAMALANGA, KEDAI SAMALANGA</p>
+                    <p>Email: admin@putroeshop.com</p>
+                    <p>Username admin: <strong>putroeadmin</strong></p>
+                    <p>Password admin: <strong>putroe2026</strong></p>
+                    <p>Jam layanan: Senin - Sabtu, 09.00 - 17.00 WIB</p>
+                    <a class="button primary full-width" href="https://wa.me/6281380134226?text=Halo%20Putroe%20Shop%2C%20saya%20butuh%20bantuan%20login%20admin." target="_blank" rel="noopener">Chat WhatsApp</a>
+                    <a class="button secondary full-width" href="admin.html#overview">Buka Halaman Admin</a>
+                </aside>
             </div>
         </section>
     </main>

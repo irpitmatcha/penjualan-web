@@ -1,5 +1,7 @@
 node_modules/
 database/sessions.json
+Screenshots/
+desktop.ini
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

@@ -25,7 +25,7 @@ const buildLoginUrl = (targetPage) => `login.html?next=${encodeURIComponent(targ
 
 const getDefaultPostLoginPage = (user) => {
     if (user && user.isAdmin) {
-        return 'admin.html#products';
+        return 'admin.html#overview';
     }
 
     return 'profil.html';
@@ -45,7 +45,8 @@ const demoAdminAccount = {
     id: 1,
     name: 'Admin Putroe Shop',
     email: 'admin@putroeshop.com',
-    password: 'admin12345',
+    username: 'putroeadmin',
+    password: 'putroe2026',
     isAdmin: true
 };
 
@@ -136,8 +137,8 @@ const saveDemoCustomers = (customers) => {
 
 const getDefaultDemoSettings = () => ({
     storeName: 'Putroe Shop',
-    address: 'Jl. UMKM Putroe Shop, Banda Aceh',
-    whatsapp: '0812-3456-7890',
+    address: 'Jl Samalangan Kedai Samalanga',
+    whatsapp: '081380134226',
     email: 'admin@putroeshop.com',
     logo: 'logo-putroe-shop.png'
 });
@@ -247,7 +248,7 @@ const findDemoUserByCredentials = (identifier, password) => {
 
     return candidates.find((user) => {
         const email = String(user.email || '').toLowerCase();
-        const username = email.split('@')[0];
+        const username = String(user.username || email.split('@')[0] || '').toLowerCase();
         return (normalizedIdentifier === email || normalizedIdentifier === username)
             && normalizedPassword === String(user.password || '');
     }) || null;
@@ -269,7 +270,7 @@ const handleLocalDemoRequest = (url, options = {}) => {
         if (!user) {
             return {
                 ok: false,
-                message: 'Login gagal. Gunakan admin / admin12345 atau akun yang sudah didaftarkan.'
+                message: 'Login gagal. Gunakan putroeadmin / putroe2026 atau akun yang sudah didaftarkan.'
             };
         }
 
@@ -592,7 +593,7 @@ const updateAuthNavigation = () => {
         if (activeSession) {
             if (activeSession.isAdmin) {
                 link.textContent = 'Admin';
-                link.href = 'admin.html';
+                link.href = 'admin.html#overview';
             } else {
                 link.textContent = 'Profil';
                 link.href = 'profil.html';
