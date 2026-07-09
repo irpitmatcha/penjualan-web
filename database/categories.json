@@ -1,0 +1,17 @@
+[
+    {
+        "id": 101,
+        "name": "Dress Muslimah",
+        "note": "Kategori busana sopan dan elegan."
+    },
+    {
+        "id": 102,
+        "name": "Blouse Wanita",
+        "note": "Kategori atasan harian dan formal."
+    },
+    {
+        "id": 103,
+        "name": "Outer Fashion",
+        "note": "Kategori pelengkap gaya kasual."
+    }
+]

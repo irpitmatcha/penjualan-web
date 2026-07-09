@@ -1,0 +1,16 @@
+[
+    {
+        "id": 301,
+        "fullName": "Siti Rahma",
+        "address": "Banda Aceh",
+        "phone": "0812-1111-2222",
+        "email": "siti@example.com"
+    },
+    {
+        "id": 302,
+        "fullName": "Nadia Putri",
+        "address": "Sigli",
+        "phone": "0813-3333-4444",
+        "email": "nadia@example.com"
+    }
+]

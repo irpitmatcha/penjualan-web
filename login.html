@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin - Putroe Shop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="running-text" aria-label="Informasi akses dashboard">
+        <div class="running-text-track">
+            <p>Login diperlukan sebelum mengakses dashboard Putroe Shop | Kelola produk, pesanan, pelanggan, penjualan, dan laporan omzet dari satu tempat | Demo lokal: username admin dan password admin12345</p>
+            <p aria-hidden="true">Login diperlukan sebelum mengakses dashboard Putroe Shop | Kelola produk, pesanan, pelanggan, penjualan, dan laporan omzet dari satu tempat | Demo lokal: username admin dan password admin12345</p>
+        </div>
+    </div>
+
+    <header class="site-header">
+        <a class="brand" href="index.html">Toko Baju Putroe Shop</a>
+        <nav class="nav-links" aria-label="Navigasi utama">
+            <a href="index.html">Beranda</a>
+            <a href="produk.html">Produk</a>
+            <a href="tentang.html">Tentang</a>
+            <a href="kontak.html">Kontak</a>
+            <a href="keranjang.html">Keranjang <span class="cart-count">0</span></a>
+            <a class="auth-nav-link active" href="login.html">Login Admin</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="page-hero login-hero">
+            <p class="eyebrow">Halaman Login Admin</p>
+            <h1>PUTROE SHOP</h1>
+            <p>Website Penjualan Online UMKM</p>
+            <p>Silakan masuk menggunakan akun administrator untuk mengelola data produk, pesanan, pelanggan, dan laporan penjualan.</p>
+        </section>
+
+        <section class="section login-section">
+            <div class="login-layout">
+                <article class="login-panel">
+                    <p class="eyebrow">PUTROE SHOP</p>
+                    <h2>Website Penjualan Online</h2>
+                    <p>Dashboard administrator membantu pengelolaan data produk, kategori, pelanggan, pesanan, laporan penjualan, dan pengaturan toko dari satu halaman.</p>
+                    <ul class="login-benefits">
+                        <li>Username</li>
+                        <li>Password</li>
+                        <li>Tombol login</li>
+                        <li>Setelah login berhasil masuk ke Dashboard Admin</li>
+                    </ul>
+                    <p class="login-helper">Demo lokal tersedia dengan username <strong>admin</strong> dan password <strong>admin12345</strong>.</p>
+                </article>
+
+                <form id="login-form" class="login-form">
+                    <p class="eyebrow">LOGIN ADMIN</p>
+                    <h2>PUTROE SHOP</h2>
+                    <p class="login-helper">Website Penjualan Online</p>
+                    <label for="username">Username</label>
+                    <input id="username" name="username" type="text" placeholder="Masukkan username" autocomplete="username" required>
+
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" placeholder="Masukkan password" autocomplete="current-password" required>
+
+                    <div class="login-form-row">
+                        <label class="remember-me" for="remember">
+                            <input id="remember" name="remember" type="checkbox">
+                            Ingat saya
+                        </label>
+                        <a class="forgot-link" href="kontak.html">Butuh bantuan?</a>
+                    </div>
+
+                    <button class="button primary full-width" type="submit">LOGIN ADMIN</button>
+                    <p class="login-helper">Setelah login berhasil, sistem akan membawa Anda ke Dashboard Admin Putroe Shop.</p>
+                </form>
+
+                <section id="auth-card" class="login-form auth-card" hidden>
+                    <p class="eyebrow">Status Login</p>
+                    <h2>Akun Sudah Aktif</h2>
+                    <p id="auth-greeting"></p>
+                    <div class="hero-actions">
+                        <a id="auth-dashboard-link" class="button primary" href="admin.html#overview">Buka Dashboard</a>
+                        <a id="auth-catalog-link" class="button secondary" href="admin.html#products">Buka Katalog Admin</a>
+                    </div>
+                    <button id="logout-account" class="button secondary full-width" type="button">Logout</button>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; Putroe Shop 2026 - Akses Dashboard Admin</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

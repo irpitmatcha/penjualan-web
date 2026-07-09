@@ -1,0 +1,29 @@
+[
+    {
+        "id": 201,
+        "name": "Dress Aulia",
+        "category": "Dress Muslimah",
+        "price": 185000,
+        "stock": 12,
+        "description": "Dress harian dengan bahan adem dan jatuh.",
+        "photo": "gambar1.jpg"
+    },
+    {
+        "id": 202,
+        "name": "Blouse Meutia",
+        "category": "Blouse Wanita",
+        "price": 135000,
+        "stock": 18,
+        "description": "Blouse kerja simpel untuk aktivitas harian.",
+        "photo": "gambar3.jpg"
+    },
+    {
+        "id": 203,
+        "name": "Outer Safa",
+        "category": "Outer Fashion",
+        "price": 210000,
+        "stock": 9,
+        "description": "Outer premium dengan potongan modern.",
+        "photo": "gambar4.jpg"
+    }
+]

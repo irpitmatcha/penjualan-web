@@ -1,0 +1,12 @@
+[
+    {
+        "id": 1,
+        "name": "Admin Putroe Shop",
+        "email": "admin@putroeshop.com",
+        "username": "admin",
+        "passwordHash": "3e6f44beb399f4140dd4f434b3da1a33c012112d27928731076db9f80055244cb448d2c14d113cc2b9ff1c92349042f42d00e04c218485eadf861021744cf980",
+        "passwordSalt": "putroe-shop-admin-salt",
+        "isAdmin": true,
+        "createdAt": "2026-07-09T00:00:00.000Z"
+    }
+]
