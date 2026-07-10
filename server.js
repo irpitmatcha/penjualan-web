@@ -61,7 +61,7 @@ const SESSIONS_FILE = path.join(DATABASE_DIR, 'sessions.json');
 const SESSION_COOKIE_NAME = 'putroe_session';
 const SESSION_MAX_AGE_SECONDS = Math.max(Number(process.env.SESSION_MAX_AGE_SECONDS) || (60 * 60 * 24 * 7), 300);
 const COOKIE_SECURE = String(process.env.COOKIE_SECURE || '').toLowerCase() === 'true';
-const COOKIE_SAME_SITE = String(process.env.COOKIE_SAME_SITE || 'Lax').trim() || 'Lax';
+const COOKIE_SAME_SITE = String(process.env.COOKIE_SAME_SITE || 'None').trim() || 'None';
 const ALLOW_PUBLIC_REGISTRATION = String(process.env.ALLOW_PUBLIC_REGISTRATION || '').toLowerCase() === 'true';
 const LOGIN_RATE_LIMIT_MAX = Math.max(Number(process.env.LOGIN_RATE_LIMIT_MAX) || 5, 1);
 const LOGIN_RATE_LIMIT_WINDOW_MS = Math.max(Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 900000, 60000);
@@ -99,6 +99,45 @@ const matchesCorsOrigin = (requestOrigin) => {
     } catch (error) {
         return false;
     }
+};
+
+const normalizeSameSiteValue = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'none') {
+        return 'None';
+    }
+
+    if (normalized === 'strict') {
+        return 'Strict';
+    }
+
+    return 'Lax';
+};
+
+const getForwardedProtocol = (request) => String(request.headers['x-forwarded-proto'] || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+
+const isSecureRequest = (request) => request.secure || getForwardedProtocol(request) === 'https';
+
+const shouldUseCrossSiteSessionCookie = (request) => {
+    const requestOrigin = String(request.headers.origin || '').trim();
+    return Boolean(requestOrigin) && matchesCorsOrigin(requestOrigin);
+};
+
+const getSessionCookiePolicy = (request) => {
+    const configuredSameSite = normalizeSameSiteValue(COOKIE_SAME_SITE);
+    const requestIsSecure = isSecureRequest(request);
+
+    if (requestIsSecure && (configuredSameSite === 'None' || shouldUseCrossSiteSessionCookie(request))) {
+        return { sameSite: 'None', secure: true };
+    }
+
+    return {
+        sameSite: configuredSameSite,
+        secure: COOKIE_SECURE && requestIsSecure
+    };
 };
 
 const defaultProducts = [
@@ -630,23 +669,25 @@ const upsertCustomerRecord = (customer) => {
     );
 };
 
-const setSessionCookie = (response, token) => {
+const setSessionCookie = (request, response, token) => {
+    const cookiePolicy = getSessionCookiePolicy(request);
     const cookieParts = [
         `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}`,
         'HttpOnly',
         'Path=/',
-        `SameSite=${COOKIE_SAME_SITE}`,
+        `SameSite=${cookiePolicy.sameSite}`,
         `Max-Age=${SESSION_MAX_AGE_SECONDS}`
     ];
-    if (COOKIE_SECURE) {
+    if (cookiePolicy.secure) {
         cookieParts.push('Secure');
     }
     response.setHeader('Set-Cookie', cookieParts.join('; '));
 };
 
-const clearSessionCookie = (response) => {
-    const cookieParts = [`${SESSION_COOKIE_NAME}=`, 'HttpOnly', 'Path=/', `SameSite=${COOKIE_SAME_SITE}`, 'Max-Age=0'];
-    if (COOKIE_SECURE) {
+const clearSessionCookie = (request, response) => {
+    const cookiePolicy = getSessionCookiePolicy(request);
+    const cookieParts = [`${SESSION_COOKIE_NAME}=`, 'HttpOnly', 'Path=/', `SameSite=${cookiePolicy.sameSite}`, 'Max-Age=0'];
+    if (cookiePolicy.secure) {
         cookieParts.push('Secure');
     }
     response.setHeader('Set-Cookie', cookieParts.join('; '));
@@ -829,7 +870,7 @@ app.post('/api/auth/login', (request, response) => {
         db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').run(token, Number(user.id), createdAt, expiresAt);
     });
 
-    setSessionCookie(response, token);
+    setSessionCookie(request, response, token);
     response.json({ message: 'Login berhasil.', user: sanitizeUser(user), token, tokenType: 'Bearer' });
 });
 
@@ -876,7 +917,7 @@ app.post('/api/auth/logout', (request, response) => {
     if (token) {
         db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
     }
-    clearSessionCookie(response);
+    clearSessionCookie(request, response);
     response.json({ message: 'Anda berhasil logout.' });
 });
 

@@ -14,6 +14,32 @@ const configuredApiBase = String(runtimeConfig.apiBase || '').trim().replace(/\/
 const hasExternalApiBase = Boolean(configuredApiBase);
 const authTokenStorageKey = 'putroeAuthToken';
 
+const readWebStorageValue = (storage, key) => {
+    try {
+        return String(storage.getItem(key) || '').trim();
+    } catch (error) {
+        return '';
+    }
+};
+
+const writeWebStorageValue = (storage, key, value) => {
+    try {
+        storage.setItem(key, value);
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
+
+const removeWebStorageValue = (storage, key) => {
+    try {
+        storage.removeItem(key);
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
+
 const buildApiUrl = (path) => {
     if (!hasExternalApiBase) {
         return path;
@@ -25,24 +51,25 @@ const buildApiUrl = (path) => {
 const shouldUseLocalDemoApi = () => window.location.protocol === 'file:' && !hasExternalApiBase;
 
 const getStoredAuthToken = () => {
-    try {
-        return String(localStorage.getItem(authTokenStorageKey) || '').trim();
-    } catch (error) {
-        return '';
+    const persistentToken = readWebStorageValue(localStorage, authTokenStorageKey);
+    if (persistentToken) {
+        return persistentToken;
     }
+
+    return readWebStorageValue(sessionStorage, authTokenStorageKey);
 };
 
 const setStoredAuthToken = (token) => {
-    try {
-        if (!token) {
-            localStorage.removeItem(authTokenStorageKey);
-            return;
-        }
-
-        localStorage.setItem(authTokenStorageKey, String(token));
-    } catch (error) {
-        // Abaikan kegagalan storage agar aplikasi tetap berjalan.
+    const normalizedToken = String(token || '').trim();
+    if (!normalizedToken) {
+        removeWebStorageValue(localStorage, authTokenStorageKey);
+        removeWebStorageValue(sessionStorage, authTokenStorageKey);
+        return false;
     }
+
+    const savedToLocalStorage = writeWebStorageValue(localStorage, authTokenStorageKey, normalizedToken);
+    const savedToSessionStorage = writeWebStorageValue(sessionStorage, authTokenStorageKey, normalizedToken);
+    return savedToLocalStorage || savedToSessionStorage;
 };
 
 const clearStoredAuthToken = () => {
@@ -485,9 +512,9 @@ const registerAccount = ({ name, email, password }) => requestAuthApi('/api/auth
     body: { name, email, password }
 });
 
-const loginAccount = ({ email, password, remember }) => requestAuthApi('/api/auth/login', {
+const loginAccount = ({ identifier, password, remember }) => requestAuthApi('/api/auth/login', {
     method: 'POST',
-    body: { email, password, remember }
+    body: { email: identifier, username: identifier, password, remember }
 });
 
 const logoutAccount = () => requestAuthApi('/api/auth/logout', {
@@ -656,8 +683,9 @@ const setupAuthForms = () => {
 
             const formData = new FormData(loginForm);
             try {
+                const identifier = String(formData.get('username') || '').trim();
                 const result = await loginAccount({
-                    email: formData.get('username'),
+                    identifier,
                     password: formData.get('password'),
                     remember: formData.get('remember') === 'on'
                 });
@@ -667,8 +695,13 @@ const setupAuthForms = () => {
                     return;
                 }
 
-                setStoredAuthToken(result.token || '');
+                const tokenSaved = setStoredAuthToken(result.token || '');
                 activeSession = result.user || null;
+                if (result.token && !tokenSaved) {
+                    showToast('Login berhasil, tetapi browser HP memblokir penyimpanan sesi. Nonaktifkan mode samaran lalu coba lagi.');
+                    return;
+                }
+
                 loginForm.reset();
                 updateAuthNavigation();
                 syncLoginPageState();
