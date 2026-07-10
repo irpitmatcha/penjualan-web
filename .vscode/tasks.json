@@ -1,0 +1,70 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Rebuild InfinityFree Zip",
+			"type": "shell",
+			"command": "if exist infinityfree-upload.zip del /f /q infinityfree-upload.zip && tar.exe -a -cf infinityfree-upload.zip -C infinityfree-upload . && dir infinityfree-upload.zip",
+			"isBackground": false,
+			"group": "build",
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			}
+		},
+		{
+			"label": "Compare HTML Upload Files",
+			"type": "shell",
+			"command": "$files = Get-ChildItem -Path . -Filter *.html | Sort-Object Name; foreach ($file in $files) { $other = Join-Path 'infinityfree-upload' $file.Name; if (-not (Test-Path $other)) { Write-Output ($file.Name + ' MISSING') } elseif ((Get-FileHash $file.FullName).Hash -eq (Get-FileHash $other).Hash) { Write-Output ($file.Name + ' SAME') } else { Write-Output ($file.Name + ' DIFFERENT') } }",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Status Snapshot",
+			"type": "shell",
+			"command": "git status --short && echo. && git branch --show-current && echo. && git remote -v",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build",
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			}
+		},
+		{
+			"label": "Git Publish Mobile Login Fix",
+			"type": "shell",
+			"command": "git add script.js server.js && git commit -m \"Fix public backend login handling and mobile CORS\" && git push origin main",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build",
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			}
+		},
+		{
+			"label": "Check Live Login CORS",
+			"type": "shell",
+			"command": "curl.exe -i -X OPTIONS https://web-production-8d5f42.up.railway.app/api/auth/login -H \"Origin: http://putroeshop.infinityfree.me\" -H \"Access-Control-Request-Method: POST\" && echo. && curl.exe -i -X OPTIONS https://web-production-8d5f42.up.railway.app/api/auth/login -H \"Origin: https://putroeshop.infinityfree.me\" -H \"Access-Control-Request-Method: POST\"",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

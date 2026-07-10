@@ -647,27 +647,41 @@ const setupAuthForms = () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const formData = new FormData(loginForm);
-            const result = await loginAccount({
-                email: formData.get('username'),
-                password: formData.get('password'),
-                remember: formData.get('remember') === 'on'
-            });
-
-            showToast(result.message);
-            if (!result.ok) {
-                return;
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            const originalButtonLabel = submitButton ? submitButton.textContent : '';
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Memproses...';
             }
 
-            setStoredAuthToken(result.token || '');
-            activeSession = result.user || null;
-            loginForm.reset();
-            updateAuthNavigation();
-            syncLoginPageState();
-            const nextPage = getNextPageParam() || getDefaultPostLoginPage(activeSession);
-            setTimeout(() => {
-                window.location.href = nextPage;
-            }, 700);
+            const formData = new FormData(loginForm);
+            try {
+                const result = await loginAccount({
+                    email: formData.get('username'),
+                    password: formData.get('password'),
+                    remember: formData.get('remember') === 'on'
+                });
+
+                showToast(result.message);
+                if (!result.ok) {
+                    return;
+                }
+
+                setStoredAuthToken(result.token || '');
+                activeSession = result.user || null;
+                loginForm.reset();
+                updateAuthNavigation();
+                syncLoginPageState();
+                const nextPage = getNextPageParam() || getDefaultPostLoginPage(activeSession);
+                setTimeout(() => {
+                    window.location.href = nextPage;
+                }, 700);
+            } finally {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonLabel;
+                }
+            }
         });
     }
 
