@@ -78,17 +78,27 @@ const parseCorsOrigins = (rawValue) => String(rawValue || '')
 
 const corsOrigins = parseCorsOrigins(CORS_ORIGIN);
 
-const matchesCorsOrigin = (requestOrigin) => {
-    if (!requestOrigin || !corsOrigins.length) {
-        return false;
-    }
+const isLoopbackOrigin = (requestUrl) => ['localhost', '127.0.0.1', '::1'].includes(requestUrl.hostname);
 
-    if (corsOrigins.includes(requestOrigin)) {
-        return true;
+const matchesCorsOrigin = (requestOrigin) => {
+    if (!requestOrigin) {
+        return false;
     }
 
     try {
         const requestUrl = new URL(requestOrigin);
+        if (['http:', 'https:'].includes(requestUrl.protocol) && isLoopbackOrigin(requestUrl)) {
+            return true;
+        }
+
+        if (!corsOrigins.length) {
+            return false;
+        }
+
+        if (corsOrigins.includes(requestOrigin)) {
+            return true;
+        }
+
         return corsOrigins.some((allowedOrigin) => {
             const allowedUrl = new URL(allowedOrigin);
             return requestUrl.hostname === allowedUrl.hostname
