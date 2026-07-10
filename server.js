@@ -71,6 +71,36 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@putroeshop.com';
 const ADMIN_USERNAME = requireEnv('ADMIN_USERNAME');
 const ADMIN_PASSWORD = requireEnv('ADMIN_PASSWORD');
 
+const parseCorsOrigins = (rawValue) => String(rawValue || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+const corsOrigins = parseCorsOrigins(CORS_ORIGIN);
+
+const matchesCorsOrigin = (requestOrigin) => {
+    if (!requestOrigin || !corsOrigins.length) {
+        return false;
+    }
+
+    if (corsOrigins.includes(requestOrigin)) {
+        return true;
+    }
+
+    try {
+        const requestUrl = new URL(requestOrigin);
+        return corsOrigins.some((allowedOrigin) => {
+            const allowedUrl = new URL(allowedOrigin);
+            return requestUrl.hostname === allowedUrl.hostname
+                && requestUrl.port === allowedUrl.port
+                && ['http:', 'https:'].includes(requestUrl.protocol)
+                && ['http:', 'https:'].includes(allowedUrl.protocol);
+        });
+    } catch (error) {
+        return false;
+    }
+};
+
 const defaultProducts = [
     { id: 201, name: 'Dress Aulia', category: 'Dress Muslimah', price: 185000, stock: 12, description: 'Dress harian dengan bahan adem dan jatuh.', photo: 'gambar1.jpg' },
     { id: 202, name: 'Blouse Meutia', category: 'Blouse Wanita', price: 135000, stock: 18, description: 'Blouse kerja simpel untuk aktivitas harian.', photo: 'gambar3.jpg' },
@@ -710,7 +740,7 @@ const requireAdmin = (request, response, next) => {
 app.disable('x-powered-by');
 app.use((request, response, next) => {
     const requestOrigin = String(request.headers.origin || '').trim();
-    if (CORS_ORIGIN && requestOrigin && requestOrigin === CORS_ORIGIN) {
+    if (matchesCorsOrigin(requestOrigin)) {
         response.setHeader('Access-Control-Allow-Origin', requestOrigin);
         response.setHeader('Vary', 'Origin');
         response.setHeader('Access-Control-Allow-Credentials', 'true');

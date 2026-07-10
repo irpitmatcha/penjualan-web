@@ -454,7 +454,7 @@ const requestAuthApi = async (url, options = {}) => {
 
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-            if (response.status === 404) {
+            if (response.status === 404 && !hasExternalApiBase) {
                 return handleLocalDemoRequest(url, options);
             }
 
@@ -469,6 +469,13 @@ const requestAuthApi = async (url, options = {}) => {
             ...data
         };
     } catch (error) {
+        if (hasExternalApiBase) {
+            return {
+                ok: false,
+                message: 'Tidak bisa terhubung ke backend publik. Buka website dari domain hosting yang benar atau periksa koneksi backend.'
+            };
+        }
+
         return handleLocalDemoRequest(url, options);
     }
 };
