@@ -151,15 +151,17 @@ const getSessionCookiePolicy = (request) => {
 };
 
 const defaultProducts = [
-    { id: 201, name: 'Dress Aulia', category: 'Dress Muslimah', price: 185000, stock: 12, description: 'Dress harian dengan bahan adem dan jatuh.', photo: 'gambar1.jpg' },
-    { id: 202, name: 'Blouse Meutia', category: 'Blouse Wanita', price: 135000, stock: 18, description: 'Blouse kerja simpel untuk aktivitas harian.', photo: 'gambar3.jpg' },
-    { id: 203, name: 'Outer Safa', category: 'Outer Fashion', price: 210000, stock: 9, description: 'Outer premium dengan potongan modern.', photo: 'gambar4.jpg' }
+    { id: 201, name: 'Kemeja Blouse Satin Putih', category: 'Blouse Wanita', price: 165000, stock: 12, description: 'Kemeja blouse satin putih dengan potongan longgar dan tampilan clean untuk kerja, kuliah, atau acara santai.', photo: 'gambar1.jpg' },
+    { id: 202, name: 'Blouse Satin Hitam', category: 'Blouse Wanita', price: 165000, stock: 18, description: 'Blouse satin hitam yang simpel dan elegan, mudah dipadukan untuk gaya formal maupun kasual.', photo: 'gambar2.jpg' },
+    { id: 203, name: 'Blouse Satin Cokelat', category: 'Blouse Wanita', price: 165000, stock: 15, description: 'Blouse satin cokelat bernuansa warm dengan desain rapi untuk tampilan manis dan dewasa.', photo: 'gambar3.jpg' }
 ];
 const defaultCategories = [
-    { id: 101, name: 'Dress Muslimah', note: 'Kategori busana sopan dan elegan.' },
-    { id: 102, name: 'Blouse Wanita', note: 'Kategori atasan harian dan formal.' },
-    { id: 103, name: 'Outer Fashion', note: 'Kategori pelengkap gaya kasual.' }
+    { id: 101, name: 'Blouse Wanita', note: 'Kategori atasan wanita yang rapi, nyaman, dan mudah dipadukan.' },
+    { id: 102, name: 'Fashion Office', note: 'Kategori outfit semi-formal untuk kerja, kuliah, dan acara santai.' },
+    { id: 103, name: 'Basic Premium', note: 'Kategori koleksi basic premium dengan bahan lembut dan jatuh.' }
 ];
+const retiredCatalogProductNames = new Set(['kemeja wanita']);
+const retiredCatalogCategoryNames = new Set(['kemeja']);
 const defaultCustomers = [
     { id: 301, fullName: 'Siti Rahma', address: 'Banda Aceh', phone: '0812-1111-2222', email: 'siti@example.com' },
     { id: 302, fullName: 'Nadia Putri', address: 'Sigli', phone: '0813-3333-4444', email: 'nadia@example.com' }
@@ -170,6 +172,24 @@ const defaultSettings = {
     whatsapp: '081380134226',
     email: ADMIN_EMAIL,
     logo: 'gambar1.jpg'
+};
+
+const normalizeCatalogText = (value) => String(value || '').trim().toLowerCase();
+
+const sanitizeProducts = (products) => {
+    if (!Array.isArray(products)) {
+        return [];
+    }
+
+    return products.filter((product) => !retiredCatalogProductNames.has(normalizeCatalogText(product && product.name)));
+};
+
+const sanitizeCategories = (categories) => {
+    if (!Array.isArray(categories)) {
+        return [];
+    }
+
+    return categories.filter((category) => !retiredCatalogCategoryNames.has(normalizeCatalogText(category && category.name)));
 };
 
 const sanitizeUser = (user) => ({
@@ -370,8 +390,8 @@ const seedRowsIfEmpty = (tableName, countSql, insertCallback) => {
 
 const migrateLegacyData = () => {
     const legacyUsers = readLegacyJson(USERS_FILE, []);
-    const legacyProducts = readLegacyJson(PRODUCTS_FILE, defaultProducts);
-    const legacyCategories = readLegacyJson(CATEGORIES_FILE, defaultCategories);
+    const legacyProducts = sanitizeProducts(readLegacyJson(PRODUCTS_FILE, defaultProducts));
+    const legacyCategories = sanitizeCategories(readLegacyJson(CATEGORIES_FILE, defaultCategories));
     const legacyCustomers = readLegacyJson(CUSTOMERS_FILE, defaultCustomers);
     const legacyOrders = readLegacyJson(ORDERS_FILE, []);
     const legacySettings = readLegacyJson(SETTINGS_FILE, defaultSettings);
@@ -491,6 +511,16 @@ const migrateLegacyData = () => {
     });
 };
 
+const purgeRetiredCatalogEntries = () => {
+    Array.from(retiredCatalogProductNames).forEach((name) => {
+        db.prepare('DELETE FROM products WHERE lower(trim(name)) = ?').run(name);
+    });
+
+    Array.from(retiredCatalogCategoryNames).forEach((name) => {
+        db.prepare('DELETE FROM categories WHERE lower(trim(name)) = ?').run(name);
+    });
+};
+
 const ensureAdminUser = () => {
     const credentials = createPasswordHash(ADMIN_PASSWORD);
     const existingAdmin = db.prepare(`
@@ -537,6 +567,7 @@ const initializeDatabase = () => {
     createSchema();
     withTransaction(() => {
         migrateLegacyData();
+        purgeRetiredCatalogEntries();
         ensureAdminUser();
         purgeExpiredSessions();
     });
@@ -587,7 +618,7 @@ const replaceProducts = (products) => {
     withTransaction(() => {
         db.prepare('DELETE FROM products').run();
         const statement = db.prepare('INSERT INTO products (id, name, category, price, stock, description, photo) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        products.forEach((product) => {
+        sanitizeProducts(products).forEach((product) => {
             statement.run(
                 Number(product.id) || Date.now(),
                 String(product.name || '').trim(),
@@ -605,7 +636,7 @@ const replaceCategories = (categories) => {
     withTransaction(() => {
         db.prepare('DELETE FROM categories').run();
         const statement = db.prepare('INSERT INTO categories (id, name, note) VALUES (?, ?, ?)');
-        categories.forEach((category) => {
+        sanitizeCategories(categories).forEach((category) => {
             statement.run(Number(category.id) || Date.now(), String(category.name || '').trim(), String(category.note || '').trim());
         });
     });
@@ -931,20 +962,32 @@ app.post('/api/auth/logout', (request, response) => {
     response.json({ message: 'Anda berhasil logout.' });
 });
 
-app.post('/api/orders', requireAuth, (request, response) => {
-    const quantity = Math.max(Number(request.body.jumlah) || 1, 1);
+app.post('/api/orders', (request, response) => {
+    const authenticatedUser = getAuthenticatedUser(request);
+    const quantity = Math.max(Number(request.body.jumlah) || Number(request.body.quantity) || 1, 1);
     const totalPrice = Number(request.body.totalHarga) || Number(request.body.total_price) || 0;
     const orderId = Date.now();
+    const customerName = String(request.body.nama || authenticatedUser?.name || '').trim();
+    const phone = String(request.body.telepon || '').trim();
+    const address = String(request.body.alamat || '').trim();
+    const productName = String(request.body.produk || request.body.product_name || 'Pesanan Website').trim();
+    const userEmail = String(authenticatedUser?.email || request.body.email || '').trim().toLowerCase();
+
+    if (!customerName || !phone || !address || !productName || totalPrice <= 0) {
+        response.status(400).json({ message: 'Data checkout belum lengkap. Pastikan produk, total, dan data pengiriman sudah terisi.' });
+        return;
+    }
+
     const newOrder = {
         id: orderId,
         order_code: String(request.body.orderNumber || `ORD-${String(orderId).slice(-6)}`),
-        user_id: request.user.id,
-        user_name: request.user.name,
-        user_email: request.user.email,
-        customer_name: String(request.body.nama || request.user.name || '').trim(),
-        phone: String(request.body.telepon || '').trim(),
-        address: String(request.body.alamat || '').trim(),
-        product_name: String(request.body.produk || request.body.product_name || 'Pesanan Website').trim(),
+        user_id: authenticatedUser ? authenticatedUser.id : 0,
+        user_name: authenticatedUser ? authenticatedUser.name : customerName,
+        user_email: userEmail,
+        customer_name: customerName,
+        phone,
+        address,
+        product_name: productName,
         quantity,
         total_price: totalPrice,
         payment_method: String(request.body.pembayaran || 'Transfer Bank').trim(),

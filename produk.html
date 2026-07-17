@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Produk - Toko Baju Putroe Shop</title>
+    <meta name="description" content="Lihat koleksi produk Putroe Shop, mulai dari blouse, kaos casual, jaket hoodie, hingga dress dengan harga ramah dan bahan nyaman.">
+    <link rel="canonical" href="https://putroeshop.infinityfree.me/produk.html">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -45,427 +47,43 @@
                 </div>
             </div>
 
-            <div class="product-grid">
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar1.jpg" alt="Kemeja wanita">
-                        <figcaption>Best Seller</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Kemeja</span>
-                        <h2>Kemeja Wanita</h2>
-                        <p>Kemeja nyaman dengan tampilan rapi untuk berbagai kegiatan.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: S, M, L</li>
-                            <li>Bahan ringan dan adem</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp150.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Kemeja Wanita" data-price="150000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
+            <div class="catalog-tools">
+                <label class="catalog-search-box" for="catalog-search">
+                    <span>Cari produk</span>
+                    <input id="catalog-search" type="search" placeholder="Cari nama produk, kategori, atau deskripsi">
+                </label>
+                <label class="catalog-sort-box" for="catalog-sort">
+                    <span>Urutkan</span>
+                    <select id="catalog-sort">
+                        <option value="latest">Terbaru</option>
+                        <option value="price-asc">Harga terendah</option>
+                        <option value="price-desc">Harga tertinggi</option>
+                        <option value="name-asc">Nama A-Z</option>
+                        <option value="stock-desc">Stok terbanyak</option>
+                    </select>
+                </label>
+            </div>
 
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar2.jpg" alt="Top blouse moscrepe remaja gira roro">
-                        <figcaption>Elegan</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Blouse</span>
-                        <h2>Top Blouse Moscrepe Remaja Gira Roro</h2>
-                        <p>Top blouse moscrepe remaja gira roro elegan untuk acara santai, semi-formal, dan pertemuan keluarga.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Cocok untuk acara spesial</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp195.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Top Blouse Moscrepe Remaja Gira Roro" data-price="195000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
+            <div id="catalog-category-filters" class="catalog-filter-chips" aria-label="Filter kategori"></div>
 
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar3.jpg" alt="Oversize t-shirt">
-                        <figcaption>Casual</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">T-Shirt</span>
-                        <h2>Oversize T-Shirt</h2>
-                        <p>Oversize t-shirt simpel dan ringan untuk gaya harian yang nyaman.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: S, M, L, XL</li>
-                            <li>Mudah dipadukan</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp130.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Oversize T-Shirt" data-price="130000">Tambah ke Keranjang</button>
-                    </div>
+            <div class="catalog-insights">
+                <article>
+                    <span>Hasil tampil</span>
+                    <strong id="catalog-result-count">0 produk</strong>
                 </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar4.jpg" alt="Jaket hoodie wanita">
-                        <figcaption>Hangat</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Jaket</span>
-                        <h2>Jaket Hoodie Wanita</h2>
-                        <p>Hoodie hangat dengan potongan santai untuk tampilan kasual.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Nyaman untuk cuaca dingin</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp250.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Jaket Hoodie Wanita" data-price="250000">Tambah ke Keranjang</button>
-                    </div>
+                <article>
+                    <span>Kategori aktif</span>
+                    <strong id="catalog-category-count">0 kategori</strong>
                 </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar5.jpg" alt="Sweatshirt wanita">
-                        <figcaption>Baru</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Sweatshirt</span>
-                        <h2>Sweatshirt Wanita</h2>
-                        <p>Sweatshirt wanita nyaman untuk tampilan rapi dan santai di aktivitas harian.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: S, M, L</li>
-                            <li>Bahan lembut dan nyaman</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp165.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Sweatshirt Wanita" data-price="165000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar6.jpg" alt="Celana cutbray wanita">
-                        <figcaption>Nyaman</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Celana</span>
-                        <h2>Celana Cutbray Wanita</h2>
-                        <p>Celana cutbray trendi dengan potongan nyaman untuk gaya harian.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Cocok untuk kegiatan sehari-hari</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp190.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Celana Cutbray Wanita" data-price="190000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar7.jpg" alt="Mini Dress Wanita">
-                        <figcaption>Trendi</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Dress</span>
-                        <h2>Mini Dress Wanita</h2>
-                        <p>Mini dress wanita manis untuk tampilan feminin yang tetap nyaman dipakai.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: All size</li>
-                            <li>Potongan flowy dan ringan</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp220.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Mini Dress Wanita" data-price="220000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar8.jpg" alt="Baggy jeans wanita">
-                        <figcaption>Eksklusif</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Jeans</span>
-                        <h2>Baggy Jeans Wanita</h2>
-                        <p>Baggy jeans wanita longgar dan nyaman untuk gaya harian yang tetap rapi.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Tampilan rapi dan modern</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp225.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Baggy Jeans Wanita" data-price="225000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar9.jpg" alt="Set blazer wanita">
-                        <figcaption>Premium</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Set Outfit</span>
-                        <h2>Set Blazer Wanita</h2>
-                        <p>Outfit blazer dan inner dengan tampilan classy untuk acara formal maupun semi-formal.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: S, M, L</li>
-                            <li>Cutting rapi dan nyaman dipakai</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp275.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Set Blazer Wanita" data-price="275000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar10.jpg" alt="Rok plisket wanita">
-                        <figcaption>Favorit</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Rok</span>
-                        <h2>Rok Plisket Wanita</h2>
-                        <p>Rok plisket flowy yang mudah dipadukan untuk tampilan feminin dan elegan.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: All size</li>
-                            <li>Karet pinggang fleksibel</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp135.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Rok Plisket Wanita" data-price="135000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar11.jpg" alt="Tunik Wanita">
-                        <figcaption>Simple Chic</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Tunik</span>
-                        <h2>Tunik Wanita</h2>
-                        <p>Tunik wanita simpel untuk tampilan feminin yang tetap nyaman dipakai.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Cocok untuk kerja dan kuliah</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp170.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Tunik Wanita" data-price="170000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar12.jpg" alt="Cardigan Rajut Wanita">
-                        <figcaption>Hangat</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Cardigan</span>
-                        <h2>Cardigan Rajut Wanita</h2>
-                        <p>Cardigan rajut lembut untuk layering outfit harian agar tampil manis dan nyaman.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: S, M, L</li>
-                            <li>Bahan rajut halus tidak panas</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp170.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Cardigan Rajut Wanita" data-price="170000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar13.jpg" alt="Jilbab Pashmina Ceruty">
-                        <figcaption>Best Seller</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Jilbab</span>
-                        <h2>Jilbab Pashmina Ceruty</h2>
-                        <p>Pashmina ceruty premium yang ringan, jatuh, dan nyaman dipakai seharian.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: 180 x 75 cm</li>
-                            <li>Tekstur halus, mudah dibentuk</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp30.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Jilbab Pashmina Ceruty" data-price="30000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar14.jpg" alt="Jilbab Segi Empat Voal">
-                        <figcaption>Premium</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Jilbab</span>
-                        <h2>Jilbab Segi Empat Voal</h2>
-                        <p>Segi empat voal lembut dengan tampilan rapi untuk gaya formal maupun kasual.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: 115 x 115 cm</li>
-                            <li>Nyaman, tidak mudah kusut</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp25.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Jilbab Segi Empat Voal" data-price="25000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar15.jpg" alt="Jilbab Instan Jersey">
-                        <figcaption>Nyaman</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Jilbab</span>
-                        <h2>Jilbab Instan Jersey</h2>
-                        <p>Jilbab instan berbahan jersey stretch yang praktis, adem, dan tetap stylish.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: All size</li>
-                            <li>Praktis dipakai untuk aktivitas harian</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp25.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Jilbab Instan Jersey" data-price="25000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar16.jpg" alt="Pasmina Rayon ">
-                        <figcaption>New Arrival</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Pasmina</span>
-                        <h2>Pasmina Rayon</h2>
-                        <p>Pasmina Rayon dengan potongan flowy dan elegan, nyaman dipakai untuk berbagai kesempatan.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Bahan adem dan tidak transparan</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp35.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Pasmina Rayon" data-price="35000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar17.jpg" alt="Barrel Pants wanita">
-                        <figcaption>New Arrival</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Pants</span>
-                        <h2>Barrel Pants Wanita</h2>
-                        <p>Barrel Pants Wanita dengan potongan flowy dan elegan, nyaman dipakai untuk berbagai kesempatan.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Bahan adem dan tidak transparan</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp150.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Barrel Pants Wanita" data-price="150000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar18.jpg" alt="Cargo Pants Wanita">
-                        <figcaption>New Arrival</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Pants</span>
-                        <h2>Cargo Pants Wanita</h2>
-                        <p>Cargo Pants Wanita dengan potongan flowy dan elegan, nyaman dipakai untuk berbagai kesempatan.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Bahan adem dan tidak transparan</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp175.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Cargo Pants Wanita" data-price="175000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar19.jpg" alt="Wide Leg Jeans Wanita">
-                        <figcaption>New Arrival</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Pants</span>
-                        <h2>Wide Leg Jeans Wanita</h2>
-                        <p>Wide Leg Jeans Wanita dengan potongan flowy dan elegan, nyaman dipakai untuk berbagai kesempatan.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Bahan adem dan tidak transparan</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp200.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Wide Leg Jeans Wanita" data-price="200000">Tambah ke Keranjang</button>
-                    </div>
-                </article>
-
-                <article class="product-card">
-                    <figure class="product-media">
-                        <img src="gambar20.jpg" alt="Palazzo Pants Wanita">
-                        <figcaption>New Arrival</figcaption>
-                    </figure>
-                    <div class="product-content">
-                        <span class="product-tag">Pants</span>
-                        <h2>Palazzo Pants Wanita</h2>
-                        <p>Palazzo Pants Wanita dengan potongan flowy dan elegan, nyaman dipakai untuk berbagai kesempatan.</p>
-                        <ul class="product-details">
-                            <li>Ukuran: M, L, XL</li>
-                            <li>Bahan adem dan tidak transparan</li>
-                        </ul>
-                        <div class="product-meta">
-                            <strong>Rp185.000</strong>
-                            <span>Stok tersedia</span>
-                        </div>
-                        <button class="button primary add-to-cart" type="button" data-name="Palazzo Pants Wanita" data-price="185000">Tambah ke Keranjang</button>
-                    </div>
+                <article>
+                    <span>Total stok tampil</span>
+                    <strong id="catalog-stock-count">0 item</strong>
                 </article>
             </div>
+
+            <p id="catalog-helper-text" class="catalog-helper-text">Tampilkan katalog yang paling sesuai dengan kebutuhan belanja Anda.</p>
+
+            <div class="product-grid"></div>
         </section>
 
         <section class="section product-note-section">
@@ -473,7 +91,7 @@
                 <p class="eyebrow">Catatan pesanan</p>
                 <h2>Pastikan ukuran dan warna sebelum checkout.</h2>
             </div>
-            <p>Setelah produk masuk keranjang, hubungi admin untuk mengecek stok terbaru, warna pilihan, alamat pengiriman, ongkir, dan metode pembayaran.</p>
+            <p>Produk di halaman ini akan mengikuti data terbaru dari dashboard admin. Setelah produk masuk keranjang, lanjutkan checkout tanpa login untuk kirim detail pesanan ke toko.</p>
         </section>
     </main>
 

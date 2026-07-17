@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin - Putroe Shop</title>
+    <meta name="robots" content="noindex, nofollow, noarchive">
     <link rel="stylesheet" href="style.css">
 </head>
 <body data-requires-auth="true" data-requires-admin="true">
@@ -272,6 +273,40 @@
                                 <p>Daftar pesanan terbaru dari sistem website dan input admin.</p>
                             </div>
                             <button id="refresh-admin-orders" class="button secondary" type="button">Muat Ulang Pesanan</button>
+                        </div>
+
+                        <div class="admin-order-summary-grid">
+                            <article><span>Total Order</span><strong id="admin-order-total">0</strong></article>
+                            <article><span>Tampil Sekarang</span><strong id="admin-order-visible">0</strong></article>
+                            <article><span>Menunggu</span><strong id="admin-order-pending">0</strong></article>
+                            <article><span>Guest Checkout</span><strong id="admin-order-guest">0</strong></article>
+                        </div>
+
+                        <div class="admin-filter-bar">
+                            <label for="admin-order-search">
+                                <span>Cari order</span>
+                                <input id="admin-order-search" type="search" placeholder="Cari kode order, nama, email, produk, telepon">
+                            </label>
+                            <label for="admin-order-status-filter">
+                                <span>Status</span>
+                                <select id="admin-order-status-filter">
+                                    <option value="semua">Semua status</option>
+                                    <option value="menunggu_konfirmasi">Menunggu konfirmasi</option>
+                                    <option value="diproses">Diproses</option>
+                                    <option value="dikirim">Dikirim</option>
+                                    <option value="selesai">Selesai</option>
+                                    <option value="dibatalkan">Dibatalkan</option>
+                                </select>
+                            </label>
+                            <label for="admin-order-source-filter">
+                                <span>Sumber</span>
+                                <select id="admin-order-source-filter">
+                                    <option value="semua">Semua sumber</option>
+                                    <option value="guest">Guest checkout</option>
+                                    <option value="akun">Akun pelanggan</option>
+                                    <option value="admin">Input admin</option>
+                                </select>
+                            </label>
                         </div>
 
                         <div id="admin-order-list" class="admin-order-list"></div>

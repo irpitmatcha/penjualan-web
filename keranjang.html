@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Keranjang - Toko Baju Putroe Shop</title>
+    <meta name="robots" content="noindex, nofollow, noarchive">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -54,6 +55,16 @@
 
                 <aside class="summary-card">
                     <h2>Ringkasan</h2>
+                    <div class="summary-highlight-grid">
+                        <article>
+                            <span>Total item</span>
+                            <strong id="cart-total-items">0</strong>
+                        </article>
+                        <article>
+                            <span>Jenis produk</span>
+                            <strong id="cart-total-products">0</strong>
+                        </article>
+                    </div>
                     <div class="summary-mini-row">
                         <span>Subtotal produk</span>
                         <strong id="cart-subtotal">Rp0</strong>
@@ -66,8 +77,9 @@
                         <span>Total</span>
                         <strong id="cart-total">Rp0</strong>
                     </div>
-                    <p class="checkout-note">Total belum termasuk ongkir. Admin akan mengonfirmasi stok, alamat, dan metode pembayaran seperti transfer bank, e-wallet, atau COD jika tersedia.</p>
-                    <a class="button primary full-width" href="kontak.html">Lanjut Hubungi Toko</a>
+                    <div id="cart-order-preview" class="checkout-preview-list"></div>
+                    <p class="checkout-note">Total belum termasuk ongkir. Lanjut ke checkout untuk mengirim isi keranjang tanpa login, lalu admin akan mengonfirmasi stok, alamat, dan metode pembayaran.</p>
+                    <a id="checkout-link" class="button primary full-width" href="kontak.html">Lanjut Checkout</a>
                     <button id="clear-cart" class="button secondary full-width" type="button">Kosongkan Keranjang</button>
                 </aside>
             </div>
@@ -89,6 +101,11 @@
                     <span>Stok</span>
                     <h3>Konfirmasi Produk</h3>
                     <p>Ukuran, warna, dan jumlah barang dicek ulang sebelum pembayaran.</p>
+                </article>
+                <article>
+                    <span>Checkout</span>
+                    <h3>Ringkas dan Cepat</h3>
+                    <p>Alamat, WhatsApp, dan metode pembayaran bisa disimpan lokal agar checkout berikutnya lebih cepat.</p>
                 </article>
             </div>
         </section>

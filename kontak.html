@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kontak - Toko Baju Putroe Shop</title>
+    <meta name="description" content="Hubungi Putroe Shop untuk informasi produk, pemesanan, dan bantuan pelanggan melalui halaman kontak resmi toko.">
+    <link rel="canonical" href="https://putroeshop.infinityfree.me/kontak.html">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -29,7 +31,7 @@
         <section class="page-hero">
             <p class="eyebrow">Hubungi kami</p>
             <h1>Kontak dan Pemesanan</h1>
-            <p>Kirim pesan untuk bertanya stok, ukuran, ongkir, dan metode pembayaran sebelum pesanan diproses.</p>
+            <p>Kirim detail checkout dari keranjang tanpa login. Admin akan menghubungi Anda untuk konfirmasi stok, ongkir, dan pembayaran.</p>
         </section>
 
         <section class="section">
@@ -37,11 +39,18 @@
                 <form class="contact-form">
                     <h2>Form Pemesanan</h2>
 
+                    <p class="login-helper">Checkout dari halaman ini tidak perlu login. Pastikan produk sudah ada di keranjang sebelum mengirim pesanan.</p>
+
+                    <div id="contact-order-summary" class="checkout-order-card"></div>
+
                     <label for="nama">Nama Lengkap</label>
                     <input id="nama" type="text" name="nama" placeholder="Masukkan nama Anda" required>
 
                     <label for="telepon">Nomor WhatsApp</label>
                     <input id="telepon" type="tel" name="telepon" placeholder="Contoh: 081380134226" required>
+
+                    <label for="email">Email</label>
+                    <input id="email" type="email" name="email" placeholder="Opsional untuk kirim ringkasan pesanan">
 
                     <label for="alamat">Alamat Pengiriman</label>
                     <textarea id="alamat" name="alamat" rows="4" placeholder="Tulis alamat lengkap untuk cek ongkir" required></textarea>
@@ -57,7 +66,7 @@
                     <label for="pesan">Pesan</label>
                     <textarea id="pesan" name="pesan" rows="5" placeholder="Contoh: Saya ingin pesan Dress Wanita ukuran M" required></textarea>
 
-                    <button class="button primary" type="submit">Kirim Konfirmasi</button>
+                    <button class="button primary" type="submit">Kirim Pesanan</button>
                 </form>
 
                 <aside class="contact-card">
@@ -68,6 +77,11 @@
                     <p>Instagram: <a href="https://instagram.com/putroe.shop" target="_blank" rel="noopener">@putroe.shop</a></p>
                     <p>TikTok: <a href="https://tiktok.com/@putroshop" target="_blank" rel="noopener">@putroshop</a></p>
                     <p>Jam layanan: Senin - Sabtu, 09.00 - 17.00 WIB</p>
+                    <div class="contact-feature-list">
+                        <div><strong>Fast Response</strong><span>Admin follow-up setelah checkout masuk.</span></div>
+                        <div><strong>Flexible Payment</strong><span>Bisa transfer bank, e-wallet, atau COD jika tersedia.</span></div>
+                        <div><strong>Order Tracking</strong><span>Status pesanan dipantau dari dashboard admin toko.</span></div>
+                    </div>
                     <a class="button primary full-width" href="https://wa.me/6281380134226?text=Halo%20Putroe%20Shop%2C%20saya%20ingin%20bertanya%20tentang%20produk." target="_blank" rel="noopener">Chat WhatsApp</a>
                     <a class="button secondary full-width" href="produk.html">Lihat Produk</a>
                 </aside>
@@ -110,9 +124,9 @@
 
             <div class="order-steps">
                 <article><span>1</span><p>Pilih produk dan masukkan ke keranjang.</p></article>
-                <article><span>2</span><p>Hubungi admin untuk cek stok, ukuran, dan ongkir.</p></article>
-                <article><span>3</span><p>Lakukan pembayaran melalui metode yang dipilih.</p></article>
-                <article><span>4</span><p>Kirim bukti pembayaran, lalu pesanan diproses.</p></article>
+                <article><span>2</span><p>Kirim checkout langsung dari website dengan alamat dan metode pembayaran.</p></article>
+                <article><span>3</span><p>Admin menghubungi Anda untuk konfirmasi stok, ongkir, dan total akhir.</p></article>
+                <article><span>4</span><p>Lakukan pembayaran, lalu pesanan diproses dan dikirim.</p></article>
             </div>
         </section>
     </main>

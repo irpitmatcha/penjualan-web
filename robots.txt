@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /login.html
+Disallow: /profil.html
+Disallow: /keranjang.html
+
+Sitemap: https://putroeshop.infinityfree.me/sitemap.xml

@@ -107,8 +107,18 @@ const demoStorageKeys = {
     products: 'putroeDemoProducts',
     categories: 'putroeDemoCategories',
     customers: 'putroeDemoCustomers',
-    settings: 'putroeDemoSettings'
+    settings: 'putroeDemoSettings',
+    checkoutProfile: 'putroeCheckoutProfile'
 };
+
+const catalogState = {
+    query: '',
+    category: 'semua',
+    sort: 'latest'
+};
+
+const retiredCatalogProductNames = new Set(['kemeja wanita']);
+const retiredCatalogCategoryNames = new Set(['kemeja']);
 
 const demoAdminAccount = {
     id: 1,
@@ -130,6 +140,24 @@ const parseStoredJson = (key, fallback) => {
 
 const saveStoredJson = (key, value) => {
     localStorage.setItem(key, JSON.stringify(value));
+};
+
+const normalizeCatalogText = (value) => String(value || '').trim().toLowerCase();
+
+const sanitizeDemoProducts = (products) => {
+    if (!Array.isArray(products)) {
+        return [];
+    }
+
+    return products.filter((product) => !retiredCatalogProductNames.has(normalizeCatalogText(product && product.name)));
+};
+
+const sanitizeDemoCategories = (categories) => {
+    if (!Array.isArray(categories)) {
+        return [];
+    }
+
+    return categories.filter((category) => !retiredCatalogCategoryNames.has(normalizeCatalogText(category && category.name)));
 };
 
 const pushAdminCollectionToServer = (collectionName, value) => {
@@ -179,22 +207,24 @@ const saveDemoOrders = (orders) => {
 
 const getDemoProducts = () => {
     const storedProducts = parseStoredJson(demoStorageKeys.products, []);
-    return Array.isArray(storedProducts) ? storedProducts : [];
+    return sanitizeDemoProducts(storedProducts);
 };
 
 const saveDemoProducts = (products) => {
-    saveStoredJson(demoStorageKeys.products, products);
-    pushAdminCollectionToServer('products', products);
+    const sanitizedProducts = sanitizeDemoProducts(products);
+    saveStoredJson(demoStorageKeys.products, sanitizedProducts);
+    pushAdminCollectionToServer('products', sanitizedProducts);
 };
 
 const getDemoCategories = () => {
     const storedCategories = parseStoredJson(demoStorageKeys.categories, []);
-    return Array.isArray(storedCategories) ? storedCategories : [];
+    return sanitizeDemoCategories(storedCategories);
 };
 
 const saveDemoCategories = (categories) => {
-    saveStoredJson(demoStorageKeys.categories, categories);
-    pushAdminCollectionToServer('categories', categories);
+    const sanitizedCategories = sanitizeDemoCategories(categories);
+    saveStoredJson(demoStorageKeys.categories, sanitizedCategories);
+    pushAdminCollectionToServer('categories', sanitizedCategories);
 };
 
 const getDemoCustomers = () => {
@@ -225,6 +255,20 @@ const getDemoSettings = () => {
 const saveDemoSettings = (settings) => {
     saveStoredJson(demoStorageKeys.settings, settings);
     pushAdminCollectionToServer('settings', settings);
+};
+
+const migrateRetiredDemoCatalogEntries = () => {
+    const storedProducts = parseStoredJson(demoStorageKeys.products, []);
+    const sanitizedProducts = sanitizeDemoProducts(storedProducts);
+    if (Array.isArray(storedProducts) && sanitizedProducts.length !== storedProducts.length) {
+        saveStoredJson(demoStorageKeys.products, sanitizedProducts);
+    }
+
+    const storedCategories = parseStoredJson(demoStorageKeys.categories, []);
+    const sanitizedCategories = sanitizeDemoCategories(storedCategories);
+    if (Array.isArray(storedCategories) && sanitizedCategories.length !== storedCategories.length) {
+        saveStoredJson(demoStorageKeys.categories, sanitizedCategories);
+    }
 };
 
 const seedDemoData = () => {
@@ -294,7 +338,106 @@ const upsertDemoCustomer = (customer) => {
 
 const getOrderTotalValue = (order) => Number(order.total_price) || 0;
 
+const getCartTotalItems = (cart) => cart.reduce((total, item) => total + Math.max(Number(item.quantity) || 1, 1), 0);
+
+const getCartTotalPrice = (cart) => cart.reduce((total, item) => total + ((Number(item.price) || 0) * Math.max(Number(item.quantity) || 1, 1)), 0);
+
+const buildCartSummary = (cart) => cart
+    .map((item) => `${item.name} x${Math.max(Number(item.quantity) || 1, 1)}`)
+    .join(', ');
+
+const getSavedCheckoutProfile = () => {
+    const storedProfile = parseStoredJson(demoStorageKeys.checkoutProfile, {});
+    return storedProfile && typeof storedProfile === 'object' ? storedProfile : {};
+};
+
+const saveCheckoutProfile = (profile) => {
+    saveStoredJson(demoStorageKeys.checkoutProfile, {
+        nama: String(profile.nama || '').trim(),
+        telepon: String(profile.telepon || '').trim(),
+        email: String(profile.email || '').trim().toLowerCase(),
+        alamat: String(profile.alamat || '').trim(),
+        pembayaran: String(profile.pembayaran || '').trim()
+    });
+};
+
+const getCatalogCategories = () => ['semua', ...new Set(getDemoCategories().map((category) => String(category.name || '').trim()).filter(Boolean))];
+
+const getFilteredCatalogProducts = () => {
+    const normalizedQuery = normalizeCatalogText(catalogState.query);
+    const selectedCategory = String(catalogState.category || 'semua').trim();
+    const filteredProducts = getDemoProducts().filter((product) => {
+        const matchesCategory = selectedCategory === 'semua' || String(product.category || '').trim() === selectedCategory;
+        if (!matchesCategory) {
+            return false;
+        }
+
+        if (!normalizedQuery) {
+            return true;
+        }
+
+        const searchableText = [product.name, product.category, product.description]
+            .map((value) => normalizeCatalogText(value))
+            .join(' ');
+        return searchableText.includes(normalizedQuery);
+    });
+
+    const sortedProducts = [...filteredProducts];
+    switch (catalogState.sort) {
+        case 'price-asc':
+            sortedProducts.sort((left, right) => (Number(left.price) || 0) - (Number(right.price) || 0));
+            break;
+        case 'price-desc':
+            sortedProducts.sort((left, right) => (Number(right.price) || 0) - (Number(left.price) || 0));
+            break;
+        case 'name-asc':
+            sortedProducts.sort((left, right) => String(left.name || '').localeCompare(String(right.name || ''), 'id'));
+            break;
+        case 'stock-desc':
+            sortedProducts.sort((left, right) => (Number(right.stock) || 0) - (Number(left.stock) || 0));
+            break;
+        default:
+            sortedProducts.sort((left, right) => Number(right.id) - Number(left.id));
+            break;
+    }
+
+    return sortedProducts;
+};
+
+const buildOrderPayloadFromForm = (form) => {
+    const cart = getCart();
+    if (cart.length === 0) {
+        return {
+            ok: false,
+            message: 'Keranjang masih kosong. Tambahkan produk dulu sebelum checkout.'
+        };
+    }
+
+    const formData = new FormData(form);
+    const totalItems = getCartTotalItems(cart);
+    const totalPrice = getCartTotalPrice(cart);
+    const cartSummary = buildCartSummary(cart);
+    const customerNote = String(formData.get('pesan') || '').trim();
+    const orderNotes = [customerNote, `Detail keranjang: ${cartSummary}`].filter(Boolean).join(' | ');
+
+    return {
+        ok: true,
+        payload: {
+            nama: String(formData.get('nama') || '').trim(),
+            telepon: String(formData.get('telepon') || '').trim(),
+            email: String(formData.get('email') || '').trim().toLowerCase(),
+            alamat: String(formData.get('alamat') || '').trim(),
+            pembayaran: String(formData.get('pembayaran') || '').trim(),
+            pesan: orderNotes,
+            produk: cartSummary,
+            jumlah: totalItems,
+            totalHarga: totalPrice
+        }
+    };
+};
+
 seedDemoData();
+migrateRetiredDemoCatalogEntries();
 
 const getDemoSession = () => {
     const session = parseStoredJson(demoStorageKeys.session, null);
@@ -355,11 +498,11 @@ const handleLocalDemoRequest = (url, options = {}) => {
         }
 
         if (Array.isArray(payload.products)) {
-            saveStoredJson(demoStorageKeys.products, payload.products);
+            saveStoredJson(demoStorageKeys.products, sanitizeDemoProducts(payload.products));
         }
 
         if (Array.isArray(payload.categories)) {
-            saveStoredJson(demoStorageKeys.categories, payload.categories);
+            saveStoredJson(demoStorageKeys.categories, sanitizeDemoCategories(payload.categories));
         }
 
         if (Array.isArray(payload.customers)) {
@@ -374,23 +517,28 @@ const handleLocalDemoRequest = (url, options = {}) => {
     }
 
     if (url === '/api/orders' && method === 'POST') {
-        if (!session) {
-            return { ok: false, message: 'Silakan login terlebih dahulu.' };
+        const orders = getDemoOrders();
+        const quantity = Math.max(Number(payload.jumlah) || Number(payload.quantity) || 1, 1);
+        const totalPrice = Number(payload.totalHarga) || Number(payload.total_price) || 0;
+        const customerName = String(payload.nama || session?.name || '').trim();
+        const customerPhone = String(payload.telepon || '').trim();
+        const customerAddress = String(payload.alamat || '').trim();
+        const productSummary = String(payload.produk || payload.product_name || 'Pesanan Website').trim();
+
+        if (!customerName || !customerPhone || !customerAddress || !productSummary || totalPrice <= 0) {
+            return { ok: false, message: 'Data checkout belum lengkap. Pastikan keranjang dan data pengiriman sudah terisi.' };
         }
 
-        const orders = getDemoOrders();
-        const quantity = Math.max(Number(payload.jumlah) || 1, 1);
-        const totalPrice = Number(payload.totalHarga) || Number(payload.total_price) || 0;
         const newOrder = {
             id: Date.now(),
             order_code: `ORD-${String(Date.now()).slice(-6)}`,
-            user_id: session.id,
-            user_name: session.name,
-            user_email: session.email,
-            customer_name: String(payload.nama || session.name || '').trim(),
-            phone: String(payload.telepon || '').trim(),
-            address: String(payload.alamat || '').trim(),
-            product_name: String(payload.produk || 'Pesanan Website').trim(),
+            user_id: session ? session.id : 0,
+            user_name: session ? session.name : customerName,
+            user_email: session ? session.email : String(payload.email || '').trim().toLowerCase(),
+            customer_name: customerName,
+            phone: customerPhone,
+            address: customerAddress,
+            product_name: productSummary,
             quantity,
             total_price: totalPrice,
             payment_method: String(payload.pembayaran || 'Transfer Bank').trim(),
@@ -540,11 +688,11 @@ const upsertLocalOrderCache = (order) => {
 
 const applyRemoteStoreBootstrap = (payload) => {
     if (Array.isArray(payload.products)) {
-        saveStoredJson(demoStorageKeys.products, payload.products);
+        saveStoredJson(demoStorageKeys.products, sanitizeDemoProducts(payload.products));
     }
 
     if (Array.isArray(payload.categories)) {
-        saveStoredJson(demoStorageKeys.categories, payload.categories);
+        saveStoredJson(demoStorageKeys.categories, sanitizeDemoCategories(payload.categories));
     }
 
     if (Array.isArray(payload.customers)) {
@@ -815,14 +963,286 @@ const renderProfilePage = () => {
     const profileName = document.getElementById('profile-name');
     const profileEmail = document.getElementById('profile-email');
     const profileId = document.getElementById('profile-id');
+    const profilePhone = document.getElementById('profile-phone');
+    const profileAddress = document.getElementById('profile-address');
+    const profilePayment = document.getElementById('profile-payment');
 
     if (!profileName || !profileEmail || !profileId || !activeSession) {
         return;
     }
 
+    const savedProfile = getSavedCheckoutProfile();
     profileName.textContent = activeSession.name;
     profileEmail.textContent = activeSession.email;
     profileId.textContent = `USR-${String(activeSession.id).padStart(4, '0')}`;
+    if (profilePhone) {
+        profilePhone.textContent = savedProfile.telepon || '-';
+    }
+    if (profileAddress) {
+        profileAddress.textContent = savedProfile.alamat || '-';
+    }
+    if (profilePayment) {
+        profilePayment.textContent = savedProfile.pembayaran || '-';
+    }
+};
+
+const renderProfileInsights = (orders) => {
+    const orderCount = document.getElementById('profile-order-count');
+    const pendingCount = document.getElementById('profile-pending-count');
+    const latestStatus = document.getElementById('profile-latest-status');
+
+    if (!orderCount || !pendingCount || !latestStatus) {
+        return;
+    }
+
+    const allOrders = Array.isArray(orders) ? orders : [];
+    orderCount.textContent = String(allOrders.length);
+    pendingCount.textContent = String(allOrders.filter((order) => String(order.status || '').trim() === 'menunggu_konfirmasi').length);
+    latestStatus.textContent = allOrders[0]
+        ? String(allOrders[0].status || 'menunggu_konfirmasi').replaceAll('_', ' ')
+        : 'Belum ada';
+};
+
+const renderHomeStats = () => {
+    const statsItems = document.querySelectorAll('.hero-stats > div');
+    if (!statsItems.length) {
+        return;
+    }
+
+    const categories = getDemoCategories();
+    const products = getDemoProducts();
+
+    const primaryValue = statsItems[0] ? statsItems[0].querySelector('strong') : null;
+    const primaryLabel = statsItems[0] ? statsItems[0].querySelector('span') : null;
+    const secondaryValue = statsItems[1] ? statsItems[1].querySelector('strong') : null;
+    const secondaryLabel = statsItems[1] ? statsItems[1].querySelector('span') : null;
+
+    if (primaryValue) {
+        primaryValue.textContent = `${categories.length}+`;
+    }
+
+    if (primaryLabel) {
+        primaryLabel.textContent = 'Kategori tersedia';
+    }
+
+    if (secondaryValue) {
+        secondaryValue.textContent = `${products.length}+`;
+    }
+
+    if (secondaryLabel) {
+        secondaryLabel.textContent = 'Produk siap dipesan';
+    }
+};
+
+const renderHomeCategories = () => {
+    const categoryGrid = document.querySelector('.category-grid');
+    if (!categoryGrid) {
+        return;
+    }
+
+    const categories = getDemoCategories();
+    const products = getDemoProducts();
+
+    if (categories.length === 0) {
+        categoryGrid.innerHTML = '<p class="table-empty">Kategori belum tersedia saat ini.</p>';
+        return;
+    }
+
+    categoryGrid.innerHTML = '';
+    categories.forEach((category) => {
+        const categoryProducts = products.filter((product) => String(product.category || '').trim() === String(category.name || '').trim());
+        const previewProduct = categoryProducts[0];
+
+        const card = document.createElement('article');
+        card.className = 'category-card';
+
+        const image = document.createElement('img');
+        image.src = previewProduct && previewProduct.photo ? previewProduct.photo : 'gambar1.jpg';
+        image.alt = category.name || 'Kategori Putroe Shop';
+
+        const title = document.createElement('h3');
+        title.textContent = category.name;
+
+        const description = document.createElement('p');
+        description.textContent = category.note || `Tersedia ${categoryProducts.length} produk untuk kategori ${category.name}.`;
+
+        card.append(image, title, description);
+        categoryGrid.appendChild(card);
+    });
+};
+
+const renderCatalogControls = () => {
+    const searchInput = document.getElementById('catalog-search');
+    const sortSelect = document.getElementById('catalog-sort');
+    const categoryFilters = document.getElementById('catalog-category-filters');
+
+    if (searchInput) {
+        searchInput.value = catalogState.query;
+    }
+
+    if (sortSelect) {
+        sortSelect.value = catalogState.sort;
+    }
+
+    if (!categoryFilters) {
+        return;
+    }
+
+    const categories = getCatalogCategories();
+    categoryFilters.innerHTML = categories.map((categoryName) => {
+        const isActive = categoryName === catalogState.category;
+        const label = categoryName === 'semua' ? 'Semua produk' : categoryName;
+        return `<button type="button" class="catalog-chip${isActive ? ' active' : ''}" data-category-filter="${categoryName}">${label}</button>`;
+    }).join('');
+};
+
+const renderCatalogInsights = (products) => {
+    const totalResultsElement = document.getElementById('catalog-result-count');
+    const totalCategoriesElement = document.getElementById('catalog-category-count');
+    const totalStockElement = document.getElementById('catalog-stock-count');
+    const catalogHelper = document.getElementById('catalog-helper-text');
+
+    if (totalResultsElement) {
+        totalResultsElement.textContent = `${products.length} produk`;
+    }
+
+    if (totalCategoriesElement) {
+        totalCategoriesElement.textContent = `${new Set(products.map((product) => String(product.category || '').trim()).filter(Boolean)).size} kategori`;
+    }
+
+    if (totalStockElement) {
+        totalStockElement.textContent = `${products.reduce((total, product) => total + Math.max(Number(product.stock) || 0, 0), 0)} item`;
+    }
+
+    if (catalogHelper) {
+        catalogHelper.textContent = products.length === 0
+            ? 'Belum ada produk yang cocok dengan filter ini.'
+            : 'Tampilkan katalog yang paling sesuai dengan kebutuhan belanja Anda.';
+    }
+};
+
+const setupCatalogInteractions = () => {
+    const searchInput = document.getElementById('catalog-search');
+    if (searchInput && !searchInput.dataset.bound) {
+        searchInput.addEventListener('input', () => {
+            catalogState.query = searchInput.value;
+            renderPublicCatalog();
+        });
+        searchInput.dataset.bound = 'true';
+    }
+
+    const sortSelect = document.getElementById('catalog-sort');
+    if (sortSelect && !sortSelect.dataset.bound) {
+        sortSelect.addEventListener('change', () => {
+            catalogState.sort = sortSelect.value;
+            renderPublicCatalog();
+        });
+        sortSelect.dataset.bound = 'true';
+    }
+
+    const categoryFilters = document.getElementById('catalog-category-filters');
+    if (categoryFilters && !categoryFilters.dataset.bound) {
+        categoryFilters.addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-category-filter]');
+            if (!button) {
+                return;
+            }
+
+            catalogState.category = button.dataset.categoryFilter || 'semua';
+            renderPublicCatalog();
+        });
+        categoryFilters.dataset.bound = 'true';
+    }
+};
+
+const renderPublicCatalog = () => {
+    const productGrid = document.querySelector('.product-grid');
+    if (!productGrid) {
+        return;
+    }
+
+    renderCatalogControls();
+    const products = getFilteredCatalogProducts();
+    renderCatalogInsights(products);
+    if (products.length === 0) {
+        productGrid.innerHTML = '<p class="table-empty">Produk tidak ditemukan. Coba ubah kata kunci atau filter kategori.</p>';
+        return;
+    }
+
+    productGrid.innerHTML = '';
+    products.forEach((product) => {
+        const card = document.createElement('article');
+        card.className = 'product-card';
+
+        const media = document.createElement('figure');
+        media.className = 'product-media';
+
+        const image = document.createElement('img');
+        image.src = String(product.photo || 'gambar1.jpg');
+        image.alt = `${product.name} Putroe Shop`;
+
+        const caption = document.createElement('figcaption');
+        caption.textContent = product.category || 'Putroe Shop';
+
+        media.append(image, caption);
+
+        const content = document.createElement('div');
+        content.className = 'product-content';
+
+        const tag = document.createElement('span');
+        tag.className = 'product-tag';
+        tag.textContent = product.category || 'Produk';
+
+        const title = document.createElement('h2');
+        title.textContent = product.name;
+
+        const description = document.createElement('p');
+        description.textContent = product.description || 'Produk tersedia untuk pemesanan online Putroe Shop.';
+
+        const details = document.createElement('ul');
+        details.className = 'product-details';
+
+        const categoryDetail = document.createElement('li');
+        categoryDetail.textContent = `Kategori: ${product.category || 'Umum'}`;
+
+        const stockDetail = document.createElement('li');
+        stockDetail.textContent = `Stok: ${Math.max(Number(product.stock) || 0, 0)} item`;
+
+        const shippingDetail = document.createElement('li');
+        shippingDetail.textContent = Number(product.stock) <= 3 ? 'Stok menipis, amankan checkout sekarang.' : 'Siap dikirim setelah admin konfirmasi.';
+
+        details.append(categoryDetail, stockDetail, shippingDetail);
+
+        const meta = document.createElement('div');
+        meta.className = 'product-meta';
+
+        const price = document.createElement('strong');
+        price.textContent = formatRupiah(Number(product.price) || 0);
+
+        const stockStatus = document.createElement('span');
+        stockStatus.textContent = Number(product.stock) > 0 ? 'Stok tersedia' : 'Stok habis';
+
+        meta.append(price, stockStatus);
+
+        const button = document.createElement('button');
+        button.className = 'button primary add-to-cart';
+        button.type = 'button';
+        button.dataset.name = product.name;
+        button.dataset.price = String(Number(product.price) || 0);
+        button.disabled = Number(product.stock) <= 0;
+        button.textContent = Number(product.stock) > 0 ? 'Tambah ke Keranjang' : 'Stok Habis';
+
+        if (Number(product.stock) <= 3 && Number(product.stock) > 0) {
+            const lowStockBadge = document.createElement('span');
+            lowStockBadge.className = 'product-stock-badge';
+            lowStockBadge.textContent = 'Stok tipis';
+            content.append(tag, lowStockBadge, title, description, details, meta, button);
+        } else {
+            content.append(tag, title, description, details, meta, button);
+        }
+        card.append(media, content);
+        productGrid.appendChild(card);
+    });
 };
 
 const renderOrderHistory = async () => {
@@ -833,11 +1253,13 @@ const renderOrderHistory = async () => {
 
     const result = await getMyOrders();
     if (!result.ok) {
+        renderProfileInsights([]);
         historyContainer.innerHTML = `<p class="order-history-empty">${result.message}</p>`;
         return;
     }
 
     const orders = Array.isArray(result.orders) ? result.orders : [];
+    renderProfileInsights(orders);
     if (orders.length === 0) {
         historyContainer.innerHTML = '<p class="order-history-empty">Belum ada pesanan.</p>';
         return;
@@ -861,7 +1283,7 @@ const renderOrderHistory = async () => {
 
         const note = document.createElement('p');
         note.className = 'order-note';
-        note.textContent = order.note || '-';
+        note.textContent = `${order.product_name || '-'} | ${order.note || '-'}`;
 
         const meta = document.createElement('p');
         meta.className = 'order-meta';
@@ -885,7 +1307,9 @@ const renderAdminOrders = async () => {
     }
 
     const orders = Array.isArray(result.orders) ? result.orders : [];
-    if (orders.length === 0) {
+    renderAdminOrderMetrics(orders);
+    const filteredOrders = getFilteredAdminOrders(orders);
+    if (filteredOrders.length === 0) {
         adminOrderList.innerHTML = '<p class="order-history-empty">Belum ada data pesanan.</p>';
         return;
     }
@@ -899,7 +1323,7 @@ const renderAdminOrders = async () => {
         'dibatalkan'
     ];
 
-    orders.forEach((order) => {
+    filteredOrders.forEach((order) => {
         const card = document.createElement('article');
         card.className = 'admin-order-card';
 
@@ -916,7 +1340,18 @@ const renderAdminOrders = async () => {
 
         const customer = document.createElement('p');
         customer.className = 'order-meta';
-        customer.textContent = `${order.user_name} (${order.user_email}) | ${order.phone}`;
+        const identityLabel = order.user_email
+            ? `${order.user_name} (${order.user_email})`
+            : `${order.user_name || order.customer_name} (guest checkout)`;
+        customer.textContent = `${identityLabel} | ${order.phone || '-'}`;
+
+        if (!order.user_email || Number(order.user_id) === 0) {
+            const originBadge = document.createElement('span');
+            originBadge.className = 'order-origin-badge';
+            originBadge.textContent = 'Guest checkout';
+            customer.append(' ');
+            customer.appendChild(originBadge);
+        }
 
         const detail = document.createElement('p');
         detail.className = 'order-note';
@@ -953,6 +1388,70 @@ const renderAdminOrders = async () => {
         actions.append(select, updateButton);
         card.append(top, customer, detail, note, actions);
         adminOrderList.appendChild(card);
+    });
+};
+
+const getOrderSourceType = (order) => {
+    if (Number(order.user_id) === 0) {
+        return 'guest';
+    }
+
+    if (String(order.payment_method || '').trim().toLowerCase() === 'manual admin') {
+        return 'admin';
+    }
+
+    return 'akun';
+};
+
+const getFilteredAdminOrders = (orders) => {
+    const query = normalizeCatalogText(document.getElementById('admin-order-search')?.value || '');
+    const status = String(document.getElementById('admin-order-status-filter')?.value || 'semua').trim();
+    const source = String(document.getElementById('admin-order-source-filter')?.value || 'semua').trim();
+
+    return orders.filter((order) => {
+        const matchesQuery = !query || [
+            order.order_code,
+            order.customer_name,
+            order.user_name,
+            order.user_email,
+            order.product_name,
+            order.phone
+        ].map((value) => normalizeCatalogText(value)).join(' ').includes(query);
+
+        if (!matchesQuery) {
+            return false;
+        }
+
+        if (status !== 'semua' && String(order.status || '').trim() !== status) {
+            return false;
+        }
+
+        if (source !== 'semua' && getOrderSourceType(order) !== source) {
+            return false;
+        }
+
+        return true;
+    });
+};
+
+const renderAdminOrderMetrics = (orders) => {
+    const allOrders = Array.isArray(orders) ? orders : [];
+    const filteredOrders = getFilteredAdminOrders(allOrders);
+    const pendingCount = allOrders.filter((order) => String(order.status || '').trim() === 'menunggu_konfirmasi').length;
+    const guestCount = allOrders.filter((order) => getOrderSourceType(order) === 'guest').length;
+
+    const summaryMap = {
+        'admin-order-total': allOrders.length,
+        'admin-order-visible': filteredOrders.length,
+        'admin-order-pending': pendingCount,
+        'admin-order-guest': guestCount
+    };
+
+    Object.entries(summaryMap).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = String(value);
+        }
     });
 };
 
@@ -1057,7 +1556,7 @@ const renderProductsList = () => {
                 <strong>${formatRupiah(Number(product.price) || 0)}</strong>
             </div>
             <p>${product.description || '-'}</p>
-            <p class="data-meta">Stok: ${product.stock} | Foto: ${product.photo || '-'}</p>
+            <p class="data-meta">Stok: ${product.stock} | Foto: ${product.photo || '-'} | ${Number(product.stock) <= 0 ? 'Stok habis' : Number(product.stock) <= 3 ? 'Stok tipis' : 'Siap jual'}</p>
             <div class="data-actions">
                 <button type="button" class="button secondary" data-admin-action="edit-product" data-id="${product.id}">Edit</button>
                 <button type="button" class="button secondary" data-admin-action="delete-product" data-id="${product.id}">Hapus</button>
@@ -1078,6 +1577,7 @@ const renderCategoriesList = () => {
         return;
     }
 
+    const products = getDemoProducts();
     container.innerHTML = categories.map((category) => `
         <article class="data-card compact">
             <div class="data-card-top">
@@ -1086,6 +1586,7 @@ const renderCategoriesList = () => {
                     <p>${category.note || '-'}</p>
                 </div>
             </div>
+            <p class="data-meta">${products.filter((product) => String(product.category || '').trim() === String(category.name || '').trim()).length} produk aktif</p>
             <div class="data-actions">
                 <button type="button" class="button secondary" data-admin-action="edit-category" data-id="${category.id}">Edit</button>
                 <button type="button" class="button secondary" data-admin-action="delete-category" data-id="${category.id}">Hapus</button>
@@ -1106,6 +1607,7 @@ const renderCustomersList = () => {
         return;
     }
 
+    const orders = getDemoOrders();
     container.innerHTML = customers.map((customer) => `
         <article class="data-card compact">
             <div class="data-card-top">
@@ -1114,7 +1616,7 @@ const renderCustomersList = () => {
                     <p>${customer.address || '-'}</p>
                 </div>
             </div>
-            <p class="data-meta">${customer.phone || '-'} | ${customer.email || '-'}</p>
+            <p class="data-meta">${customer.phone || '-'} | ${customer.email || '-'} | ${orders.filter((order) => String(order.customer_name || '').trim().toLowerCase() === String(customer.fullName || '').trim().toLowerCase()).length} pesanan</p>
             <div class="data-actions">
                 <button type="button" class="button secondary" data-admin-action="edit-customer" data-id="${customer.id}">Edit</button>
                 <button type="button" class="button secondary" data-admin-action="delete-customer" data-id="${customer.id}">Hapus</button>
@@ -1286,6 +1788,109 @@ const renderAdminWorkspace = async () => {
     renderSalesList();
     renderReportSummary();
     renderSettingsForm();
+};
+
+const renderCartSummaryDetails = (cart) => {
+    const totalItemsElement = document.getElementById('cart-total-items');
+    const totalProductsElement = document.getElementById('cart-total-products');
+    const previewContainer = document.getElementById('cart-order-preview');
+    const checkoutLink = document.getElementById('checkout-link');
+
+    if (totalItemsElement) {
+        totalItemsElement.textContent = String(getCartTotalItems(cart));
+    }
+
+    if (totalProductsElement) {
+        totalProductsElement.textContent = String(cart.length);
+    }
+
+    if (checkoutLink) {
+        checkoutLink.classList.toggle('is-disabled', cart.length === 0);
+        checkoutLink.setAttribute('aria-disabled', cart.length === 0 ? 'true' : 'false');
+    }
+
+    if (!previewContainer) {
+        return;
+    }
+
+    previewContainer.innerHTML = cart.length === 0
+        ? '<p class="checkout-preview-empty">Belum ada produk di keranjang. Pilih produk untuk melihat ringkasan checkout.</p>'
+        : cart.map((item) => `
+            <div class="checkout-preview-item">
+                <span>${item.name}</span>
+                <strong>${item.quantity} x ${formatRupiah(item.price)}</strong>
+            </div>
+        `).join('');
+};
+
+const hydrateCheckoutForm = () => {
+    const form = document.querySelector('.contact-form');
+    if (!form) {
+        return;
+    }
+
+    const savedProfile = getSavedCheckoutProfile();
+    const profileName = String(savedProfile.nama || activeSession?.name || '').trim();
+    const profileEmail = String(savedProfile.email || activeSession?.email || '').trim();
+
+    if (!form.elements.nama.value && profileName) {
+        form.elements.nama.value = profileName;
+    }
+
+    if (!form.elements.telepon.value && savedProfile.telepon) {
+        form.elements.telepon.value = savedProfile.telepon;
+    }
+
+    if (!form.elements.email.value && profileEmail) {
+        form.elements.email.value = profileEmail;
+    }
+
+    if (!form.elements.alamat.value && savedProfile.alamat) {
+        form.elements.alamat.value = savedProfile.alamat;
+    }
+
+    if (!form.elements.pembayaran.value && savedProfile.pembayaran) {
+        form.elements.pembayaran.value = savedProfile.pembayaran;
+    }
+};
+
+const renderCheckoutContactSummary = () => {
+    const summaryContainer = document.getElementById('contact-order-summary');
+    const submitButton = document.querySelector('.contact-form button[type="submit"]');
+    if (!summaryContainer) {
+        return;
+    }
+
+    const cart = getCart();
+    if (submitButton) {
+        submitButton.disabled = cart.length === 0;
+    }
+
+    if (cart.length === 0) {
+        summaryContainer.innerHTML = `
+            <p class="eyebrow">Ringkasan checkout</p>
+            <h3>Keranjang masih kosong</h3>
+            <p>Tambahkan produk dari katalog agar form ini siap dipakai untuk checkout.</p>
+        `;
+        return;
+    }
+
+    summaryContainer.innerHTML = `
+        <p class="eyebrow">Ringkasan checkout</p>
+        <h3>${getCartTotalItems(cart)} item siap dikirim</h3>
+        <div class="checkout-preview-list">
+            ${cart.map((item) => `
+                <div class="checkout-preview-item">
+                    <span>${item.name}</span>
+                    <strong>${item.quantity} x ${formatRupiah(item.price)}</strong>
+                </div>
+            `).join('')}
+        </div>
+        <div class="checkout-summary-strip">
+            <span>Total sementara</span>
+            <strong>${formatRupiah(getCartTotalPrice(cart))}</strong>
+        </div>
+    `;
 };
 
 const setupAdminPageActions = () => {
@@ -1569,6 +2174,30 @@ const setupAdminPageActions = () => {
             showToast('Data pesanan dimuat ulang.');
         });
     }
+
+    const adminOrderSearch = document.getElementById('admin-order-search');
+    if (adminOrderSearch && !adminOrderSearch.dataset.bound) {
+        adminOrderSearch.addEventListener('input', () => {
+            renderAdminOrders();
+        });
+        adminOrderSearch.dataset.bound = 'true';
+    }
+
+    const adminOrderStatusFilter = document.getElementById('admin-order-status-filter');
+    if (adminOrderStatusFilter && !adminOrderStatusFilter.dataset.bound) {
+        adminOrderStatusFilter.addEventListener('change', () => {
+            renderAdminOrders();
+        });
+        adminOrderStatusFilter.dataset.bound = 'true';
+    }
+
+    const adminOrderSourceFilter = document.getElementById('admin-order-source-filter');
+    if (adminOrderSourceFilter && !adminOrderSourceFilter.dataset.bound) {
+        adminOrderSourceFilter.addEventListener('change', () => {
+            renderAdminOrders();
+        });
+        adminOrderSourceFilter.dataset.bound = 'true';
+    }
 };
 
 const initializeAuth = async () => {
@@ -1685,6 +2314,7 @@ const renderCart = () => {
         if (cartSubtotal) {
             cartSubtotal.textContent = formatRupiah(0);
         }
+        renderCartSummaryDetails([]);
         return;
     }
 
@@ -1734,6 +2364,7 @@ const renderCart = () => {
     if (cartSubtotal) {
         cartSubtotal.textContent = formatRupiah(total);
     }
+    renderCartSummaryDetails(cart);
 };
 
 document.querySelectorAll('.cart-items').forEach((cartItems) => {
@@ -1757,10 +2388,13 @@ document.querySelectorAll('.cart-items').forEach((cartItems) => {
     });
 });
 
-document.querySelectorAll('.add-to-cart').forEach((button) => {
-    button.addEventListener('click', () => {
-        addToCart(button.dataset.name, Number(button.dataset.price));
-    });
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('.add-to-cart');
+    if (!button) {
+        return;
+    }
+
+    addToCart(button.dataset.name, Number(button.dataset.price));
 });
 
 const clearCartButton = document.getElementById('clear-cart');
@@ -1776,42 +2410,34 @@ document.querySelectorAll('.contact-form').forEach((form) => {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        const session = activeSession || await fetchActiveSession();
-        if (!session) {
-            showToast('Silakan login dulu untuk mengirim pemesanan.');
-            setTimeout(() => {
-                window.location.href = buildLoginUrl(getCurrentPage());
-            }, 700);
+        const orderRequest = buildOrderPayloadFromForm(form);
+        if (!orderRequest.ok) {
+            showToast(orderRequest.message);
             return;
         }
 
-        const formData = new FormData(form);
-        const payload = {
-            nama: String(formData.get('nama') || '').trim(),
-            telepon: String(formData.get('telepon') || '').trim(),
-            alamat: String(formData.get('alamat') || '').trim(),
-            pembayaran: String(formData.get('pembayaran') || '').trim(),
-            pesan: String(formData.get('pesan') || '').trim()
-        };
-
-        const result = await createOrder(payload);
+        const result = await createOrder(orderRequest.payload);
         showToast(result.message || 'Proses pengiriman pesanan selesai.');
         if (!result.ok) {
             return;
         }
 
+        saveCheckoutProfile(orderRequest.payload);
         form.reset();
+        saveCart([]);
+        updateCartCount();
+        renderCart();
+        hydrateCheckoutForm();
+        renderCheckoutContactSummary();
     });
-});
-
-// Prevent stale cached local images when the file is replaced with a new photo.
-document.querySelectorAll('img[src^="gambar"]').forEach((image) => {
-    const separator = image.src.includes('?') ? '&' : '?';
-    image.src = `${image.src}${separator}v=${Date.now()}`;
 });
 
 const bootstrapPage = async () => {
     await initializeRemoteStore();
+    renderPublicCatalog();
+    setupCatalogInteractions();
+    renderHomeStats();
+    renderHomeCategories();
     setupAuthForms();
     setupAdminPageActions();
     const authResult = await initializeAuth();
@@ -1821,6 +2447,8 @@ const bootstrapPage = async () => {
 
     updateCartCount();
     renderCart();
+    hydrateCheckoutForm();
+    renderCheckoutContactSummary();
 };
 
 bootstrapPage();

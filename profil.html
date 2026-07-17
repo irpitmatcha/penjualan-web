@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil Pengguna - Putroe Shop</title>
+    <meta name="robots" content="noindex, nofollow, noarchive">
     <link rel="stylesheet" href="style.css">
 </head>
 <body data-requires-auth="true">
@@ -27,45 +28,95 @@
     </header>
 
     <main>
-        <section class="page-hero">
+        <section class="page-hero profile-hero">
             <p class="eyebrow">Akun Pengguna</p>
             <h1>Profil dan Riwayat Pesanan</h1>
             <p>Halaman ini memudahkan pengguna untuk melihat identitas akun, kode pelanggan, dan riwayat transaksi yang sudah pernah dikirim melalui website Putroe Shop.</p>
         </section>
 
+        <section class="section profile-insight-section">
+            <div class="profile-insight-strip">
+                <article>
+                    <span>Total pesanan</span>
+                    <strong id="profile-order-count">0</strong>
+                </article>
+                <article>
+                    <span>Perlu tindak lanjut</span>
+                    <strong id="profile-pending-count">0</strong>
+                </article>
+                <article>
+                    <span>Status terbaru</span>
+                    <strong id="profile-latest-status">Belum ada</strong>
+                </article>
+            </div>
+        </section>
+
         <section class="section login-section">
             <div class="profile-layout">
-                <article class="profile-card">
-                    <p class="eyebrow">Informasi Akun</p>
-                    <h2>Data pengguna yang sedang login</h2>
-                    <div class="profile-list">
-                        <div>
-                            <span>Nama</span>
-                            <strong id="profile-name">-</strong>
+                <div class="profile-sidebar-stack">
+                    <article class="profile-card profile-card-featured">
+                        <p class="eyebrow">Informasi Akun</p>
+                        <h2>Data pengguna yang sedang login</h2>
+                        <div class="profile-list">
+                            <div>
+                                <span>Nama</span>
+                                <strong id="profile-name">-</strong>
+                            </div>
+                            <div>
+                                <span>Email</span>
+                                <strong id="profile-email">-</strong>
+                            </div>
+                            <div>
+                                <span>ID Pengguna</span>
+                                <strong id="profile-id">-</strong>
+                            </div>
                         </div>
-                        <div>
-                            <span>Email</span>
-                            <strong id="profile-email">-</strong>
-                        </div>
-                        <div>
-                            <span>ID Pengguna</span>
-                            <strong id="profile-id">-</strong>
-                        </div>
-                    </div>
 
-                    <div class="hero-actions">
-                        <a class="button primary" href="produk.html">Belanja Lagi</a>
-                        <button id="logout-profile" class="button secondary" type="button">Logout</button>
-                    </div>
-                </article>
+                        <div class="hero-actions">
+                            <a class="button primary" href="produk.html">Belanja Lagi</a>
+                            <button id="logout-profile" class="button secondary" type="button">Logout</button>
+                        </div>
+                    </article>
 
-                <article class="profile-card">
-                    <p class="eyebrow">Data Penjualan</p>
-                    <h2>Riwayat pesanan Anda</h2>
-                    <div id="order-history" class="order-history">
-                        <p class="order-history-empty">Belum ada pesanan.</p>
-                    </div>
-                </article>
+                    <article class="profile-card profile-contact-card">
+                        <p class="eyebrow">Data Checkout Tersimpan</p>
+                        <h2>Kontak yang sering dipakai</h2>
+                        <div class="profile-contact-grid">
+                            <div>
+                                <span>WhatsApp</span>
+                                <strong id="profile-phone">-</strong>
+                            </div>
+                            <div>
+                                <span>Alamat</span>
+                                <strong id="profile-address">-</strong>
+                            </div>
+                            <div>
+                                <span>Pembayaran favorit</span>
+                                <strong id="profile-payment">-</strong>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="profile-main-stack">
+                    <article class="profile-card">
+                        <p class="eyebrow">Data Penjualan</p>
+                        <h2>Riwayat pesanan Anda</h2>
+                        <div id="order-history" class="order-history">
+                            <p class="order-history-empty">Belum ada pesanan.</p>
+                        </div>
+                    </article>
+
+                    <article class="profile-card profile-help-card">
+                        <p class="eyebrow">Bantuan cepat</p>
+                        <h2>Butuh ubah alamat atau konfirmasi pesanan?</h2>
+                        <p>Gunakan halaman kontak bila Anda ingin memperbarui detail pengiriman, menanyakan status order, atau meminta bantuan admin terkait pembayaran.</p>
+                        <div class="hero-actions">
+                            <a class="button primary" href="kontak.html">Hubungi Admin</a>
+                            <a class="button secondary" href="keranjang.html">Lihat Keranjang</a>
+                        </div>
+                    </article>
+                </div>
             </div>
         </section>
     </main>
